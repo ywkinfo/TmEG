@@ -1,6 +1,6 @@
 {
   "title": "상표심사기준",
-  "syncedAt": "2026-04-11T05:55:13.876664+00:00",
+  "syncedAt": "2026-04-11T13:53:40.020648+00:00",
   "fileCount": 6,
   "imageFileCount": 256,
   "files": [
@@ -8,37 +8,37 @@
       "name": "pdf-inventory.json",
       "relativePath": "public/generated/pdf-inventory.json",
       "bytes": 393561,
-      "modifiedAt": "2026-04-11T05:55:04.127361+00:00"
+      "modifiedAt": "2026-04-11T07:15:28.110229+00:00"
     },
     {
       "name": "toc.json",
       "relativePath": "public/generated/toc.json",
       "bytes": 569846,
-      "modifiedAt": "2026-04-11T05:55:04.622164+00:00"
+      "modifiedAt": "2026-04-11T07:15:28.560749+00:00"
     },
     {
       "name": "document-data.json",
       "relativePath": "public/generated/document-data.json",
-      "bytes": 1587078,
-      "modifiedAt": "2026-04-11T05:55:13.099284+00:00"
+      "bytes": 1583200,
+      "modifiedAt": "2026-04-11T13:53:33.967683+00:00"
     },
     {
       "name": "search-index.json",
       "relativePath": "public/generated/search-index.json",
       "bytes": 1598377,
-      "modifiedAt": "2026-04-11T05:55:13.109112+00:00"
+      "modifiedAt": "2026-04-11T13:53:33.977906+00:00"
     },
     {
       "name": "exploration-index.json",
       "relativePath": "public/generated/exploration-index.json",
       "bytes": 265582,
-      "modifiedAt": "2026-04-11T05:55:13.112427+00:00"
+      "modifiedAt": "2026-04-11T13:53:33.981598+00:00"
     },
     {
       "name": "coverage-report.json",
       "relativePath": "public/generated/coverage-report.json",
       "bytes": 463,
-      "modifiedAt": "2026-04-11T05:55:13.112642+00:00"
+      "modifiedAt": "2026-04-11T13:53:33.982012+00:00"
     }
   ]
 }
