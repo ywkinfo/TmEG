@@ -206,7 +206,7 @@ class ContentGuardrailsTest(unittest.TestCase):
             },
             {
                 "type": 1,
-                "_relativePath": "generated/images/example.png",
+                "_relativePath": "public/generated/images/example.png",
                 "_pageNumber": 138,
                 "_pageCode": "30208",
             },
@@ -226,7 +226,7 @@ class ContentGuardrailsTest(unittest.TestCase):
             },
             {
                 "type": 1,
-                "_relativePath": "generated/images/example.png",
+                "_relativePath": "public/generated/images/example.png",
                 "_pageNumber": 138,
                 "_pageCode": "30208",
             },
@@ -239,7 +239,7 @@ class ContentGuardrailsTest(unittest.TestCase):
         html = blocks_to_html(blocks)
 
         self.assertIn('<figure class="reader-image">', html)
-        self.assertIn('src="generated/images/example.png"', html)
+        self.assertIn('src="public/generated/images/example.png"', html)
         self.assertIn('alt="상표 이미지 (p.138)"', html)
         self.assertIn('<figcaption>p.138 · 30208</figcaption>', html)
         self.assertLess(html.index("앞 문단"), html.index('<figure class="reader-image">'))

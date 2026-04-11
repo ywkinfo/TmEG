@@ -81,6 +81,29 @@ function formatPageRange(start, end) {
   return `p.${start}-${end}`;
 }
 
+function renderImageBadge(hasImage, imageCount) {
+  if (!hasImage) {
+    return "";
+  }
+
+  const normalizedCount = Number(imageCount);
+  const badgeLabel =
+    Number.isFinite(normalizedCount) && normalizedCount > 0
+      ? `이미지 ${normalizedCount}개 포함`
+      : "이미지 포함";
+
+  return `
+    <span class="reader-badge image-badge" aria-label="${escapeHtml(badgeLabel)}">
+      이미지 포함
+      ${
+        Number.isFinite(normalizedCount) && normalizedCount > 0
+          ? `<span class="reader-badge-count">${escapeHtml(String(normalizedCount))}</span>`
+          : ""
+      }
+    </span>
+  `;
+}
+
 function getCurrentChapter() {
   return (
     state.documentData?.chapters.find((chapter) => chapter.id === state.currentChapterId) ?? null
@@ -261,7 +284,10 @@ function renderToc() {
                     type="button"
                     data-chapter-id="${escapeHtml(chapter.id)}"
                   >
-                    <span class="toc-title">${escapeHtml(stripGuideDots(chapter.title))}</span>
+                    <span class="toc-title-row">
+                      <span class="toc-title">${escapeHtml(stripGuideDots(chapter.title))}</span>
+                      ${renderImageBadge(chapter.hasImage, chapter.imageCount)}
+                    </span>
                     <span class="toc-meta">${escapeHtml(
                       formatPageRange(chapter.pageStart, chapter.pageEnd)
                     )}</span>
@@ -376,7 +402,10 @@ function renderUtility() {
                       data-section-id="${escapeHtml(entry.sectionId)}"
                     >
                       <span class="result-kicker">${escapeHtml(stripGuideDots(entry.partTitle))}</span>
-                      <strong>${escapeHtml(stripGuideDots(entry.sectionTitle))}</strong>
+                      <span class="result-title-row">
+                        <strong>${escapeHtml(stripGuideDots(entry.sectionTitle))}</strong>
+                        ${renderImageBadge(entry.hasImage, entry.imageCount)}
+                      </span>
                       <span>${escapeHtml(stripGuideDots(entry.chapterTitle))}</span>
                       <p>${escapeHtml(entry.excerpt)}</p>
                       <span class="result-meta">${escapeHtml(
