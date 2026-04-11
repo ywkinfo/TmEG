@@ -1,23 +1,26 @@
 # Web App
 
-이 디렉터리는 `data/generated/` 산출물을 읽는 로컬 리더 웹앱입니다.
+이 디렉터리는 `data/generated/` 산출물을 읽는 phase-1 TmEG reader shell입니다.
 
 ## Current State
 
-- `index.html`: 정적 리더 진입점
+- `index.html`: Vite entry
 - `public/generated/`: 파이프라인 산출물을 동기화하는 위치
-- `src/app.js`: 목차, 본문, 검색, 탐색 상호작용
-- `src/styles.css`: 리더 전용 스타일
-- `README.md`: 실행 메모
+- `src/App.tsx`: HashRouter 기반 home/reader shell
+- `src/lib/generated-data.ts`: generated JSON adapter layer
+- `src/styles.css`: 모바일 우선 reader design system
 
 ## Usage
 
 1. 루트에서 `npm run web:prepare`
-2. 이어서 `npm run web:serve`
-3. 브라우저에서 `http://localhost:4317`
+2. 의존성이 없으면 `npm --prefix web install`
+3. 개발 서버는 `npm --prefix web run dev`
+4. 정적 빌드는 `npm --prefix web run build`
+5. 빌드 미리보기는 `npm --prefix web run preview`
 
 ## Scope
 
-- 현재 리더는 `document-data.json`, `search-index.json`, `exploration-index.json`, `manifest.json`을 직접 읽습니다.
-- 번들러나 프레임워크 없이 정적 파일로 실행되어, 데이터 계약 검증과 UI 방향 확인에 집중합니다.
-- 원문 PDF 임베드는 아직 포함하지 않고, 구조화 JSON 소비와 탐색 흐름 확인을 우선합니다.
+- 리더는 `toc.json`, `document-data.json`, `search-index.json`, `exploration-index.json`, `manifest.json`을 직접 읽습니다.
+- `overview`는 필요 시 런타임에서 synthetic section으로 보강합니다.
+- exploration route join은 section id 단독이 아니라 chapter-aware composite key로 해결합니다.
+- PDF/original document viewer, bookmark, worker search, scroll-driven URL mutation은 이번 phase 범위에 포함하지 않습니다.
