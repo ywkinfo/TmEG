@@ -22,7 +22,6 @@ GENERATED_DIR = DATA_DIR / "generated"
 CONFIG_PATH = SOURCE_DIR / "source-config.json"
 PAGE_CODE_RE = re.compile(r"\b\d{5,6}\b")
 WHITESPACE_RE = re.compile(r"\s+")
-TITLE_LEADER_RE = re.compile(r"[·•⋯…]{3,}")
 
 
 def load_config() -> dict[str, Any]:
@@ -60,60 +59,6 @@ def load_generated_json(filename: str) -> Any:
 
 def normalize_space(value: str) -> str:
     return WHITESPACE_RE.sub(" ", value).strip()
-
-
-def clean_title(value: str) -> str:
-    return normalize_space(TITLE_LEADER_RE.sub("", value or ""))
-
-
-def strip_running_header(
-    text: str,
-    *,
-    chapter_title: str | None = None,
-    section_title: str | None = None,
-    page_code: str | None = None,
-) -> str:
-    def canonicalize_title(value: str | None) -> str:
-        return re.sub(r"\s+", "", clean_title(value or ""))
-
-    def strip_page_code_suffix(line: str) -> str:
-        if not page_code:
-            return line
-        if line == page_code:
-            return ""
-        if line.endswith(page_code):
-            return line[: -len(page_code)].strip()
-        return line
-
-    lines = text.replace("\x00", "").splitlines()
-    candidates = {
-        candidate
-        for candidate in (
-            canonicalize_title(chapter_title),
-            canonicalize_title(section_title),
-        )
-        if candidate
-    }
-
-    while lines and not normalize_space(lines[0]):
-        lines.pop(0)
-
-    while lines:
-        normalized = normalize_space(lines[0])
-        if not normalized:
-            lines.pop(0)
-            continue
-        if page_code and normalized == page_code:
-            lines.pop(0)
-            continue
-        normalized_without_page_code = normalize_space(strip_page_code_suffix(normalized))
-        canonical_line = re.sub(r"\s+", "", clean_title(normalized_without_page_code))
-        if canonical_line and canonical_line in candidates:
-            lines.pop(0)
-            continue
-        break
-
-    return "\n".join(line.rstrip() for line in lines).strip()
 
 
 def extract_page_text(page: Any) -> str:
