@@ -8,10 +8,10 @@ from pathlib import Path
 from typing import Any
 
 try:
-    from pypdf import PdfReader
+    import pymupdf
 except ModuleNotFoundError as exc:
     raise SystemExit(
-        "pypdf 모듈이 필요합니다. 현재 환경에서 `python -c 'import pypdf'`가 동작해야 합니다."
+        "pymupdf 모듈이 필요합니다. 현재 환경에서 `python -c 'import pymupdf'`가 동작해야 합니다."
     ) from exc
 
 
@@ -22,6 +22,7 @@ GENERATED_DIR = DATA_DIR / "generated"
 CONFIG_PATH = SOURCE_DIR / "source-config.json"
 PAGE_CODE_RE = re.compile(r"\b\d{5,6}\b")
 WHITESPACE_RE = re.compile(r"\s+")
+TITLE_LEADER_RE = re.compile(r"[·•⋯…]{3,}")
 
 
 def load_config() -> dict[str, Any]:
@@ -35,8 +36,8 @@ def resolve_pdf_path(config: dict[str, Any]) -> Path:
     return pdf_path
 
 
-def open_pdf(config: dict[str, Any]) -> PdfReader:
-    return PdfReader(str(resolve_pdf_path(config)))
+def open_pdf(config: dict[str, Any]) -> pymupdf.Document:
+    return pymupdf.open(str(resolve_pdf_path(config)))
 
 
 def ensure_generated_dir() -> None:
@@ -61,8 +62,70 @@ def normalize_space(value: str) -> str:
     return WHITESPACE_RE.sub(" ", value).strip()
 
 
+def clean_title(value: str) -> str:
+    return normalize_space(TITLE_LEADER_RE.sub("", value or ""))
+
+
+def strip_running_header(
+    text: str,
+    *,
+    chapter_title: str | None = None,
+    section_title: str | None = None,
+    page_code: str | None = None,
+) -> str:
+    def canonicalize_title(value: str | None) -> str:
+        return re.sub(r"\s+", "", clean_title(value or ""))
+
+    def strip_page_code_suffix(line: str) -> str:
+        if not page_code:
+            return line
+        if line == page_code:
+            return ""
+        if line.endswith(page_code):
+            return line[: -len(page_code)].strip()
+        return line
+
+    lines = text.replace("\x00", "").splitlines()
+    candidates = {
+        candidate
+        for candidate in (
+            canonicalize_title(chapter_title),
+            canonicalize_title(section_title),
+        )
+        if candidate
+    }
+
+    while lines and not normalize_space(lines[0]):
+        lines.pop(0)
+
+    while lines:
+        normalized = normalize_space(lines[0])
+        if not normalized:
+            lines.pop(0)
+            continue
+        if page_code and normalized == page_code:
+            lines.pop(0)
+            continue
+        normalized_without_page_code = normalize_space(strip_page_code_suffix(normalized))
+        canonical_line = re.sub(r"\s+", "", clean_title(normalized_without_page_code))
+        if canonical_line and canonical_line in candidates:
+            lines.pop(0)
+            continue
+        break
+
+    return "\n".join(line.rstrip() for line in lines).strip()
+
+
 def extract_page_text(page: Any) -> str:
-    return (page.extract_text() or "").replace("\x00", "").strip()
+    return (page.get_text("text") or "").replace("\x00", "").strip()
+
+
+def extract_page_blocks(page: Any, sort: bool = False) -> list[dict[str, Any]]:
+    return page.get_text("dict", sort=sort).get("blocks", [])
+
+
+def count_image_blocks(page: Any) -> int:
+    return sum(1 for block in extract_page_blocks(page) if block.get("type") == 1)
 
 
 def extract_top_lines(text: str, limit: int = 8) -> list[str]:
@@ -107,8 +170,8 @@ def text_to_html(text: str) -> str:
     return "\n".join(paragraphs)
 
 
-def load_page_texts(reader: PdfReader) -> dict[int, str]:
-    return {index + 1: extract_page_text(page) for index, page in enumerate(reader.pages)}
+def load_page_texts(reader: pymupdf.Document) -> dict[int, str]:
+    return {index + 1: extract_page_text(reader.load_page(index)) for index in range(reader.page_count)}
 
 
 def fail(message: str) -> None:
