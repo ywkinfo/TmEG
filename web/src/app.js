@@ -26,6 +26,7 @@ const state = {
   activeCategory: "",
   query: "",
   pendingScrollTarget: "",
+  pendingReaderReveal: false,
 };
 
 const elements = {
@@ -35,7 +36,53 @@ const elements = {
   utilityPanel: document.querySelector("#utility-panel"),
   searchInput: document.querySelector("#search-input"),
   searchReset: document.querySelector("#search-reset"),
+  mobileActionBar: document.querySelector("#mobile-action-bar"),
 };
+
+function isStackedMobileLayout() {
+  return window.matchMedia("(max-width: 1180px)").matches;
+}
+
+function revealReaderPanel() {
+  if (!isStackedMobileLayout()) {
+    return;
+  }
+
+  const readerPanel = elements.readerPanel.closest(".reader-panel");
+  if (!readerPanel) {
+    return;
+  }
+
+  const readerTop = readerPanel.getBoundingClientRect().top + window.scrollY;
+  window.scrollTo({ top: Math.max(0, readerTop), behavior: "smooth" });
+}
+
+function scrollReaderTarget(target) {
+  if (!target) {
+    return;
+  }
+
+  if (isStackedMobileLayout()) {
+    const targetTop = target.getBoundingClientRect().top + window.scrollY;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+      });
+    });
+    return;
+  }
+
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function scrollToTop() {
+  if (isStackedMobileLayout()) {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+
+  elements.readerPanel.scrollTo({ top: 0, behavior: "smooth" });
+}
 
 function stripGuideDots(value) {
   return String(value || "")
@@ -236,10 +283,11 @@ function applyHashSelection() {
   state.activeSectionId = sectionId || "overview";
 }
 
-function selectLocation(chapterId, sectionId = "overview", shouldScroll = true) {
+function selectLocation(chapterId, sectionId = "overview", shouldScroll = true, shouldRevealReader = false) {
   state.currentChapterId = chapterId;
   state.activeSectionId = sectionId;
   state.pendingScrollTarget = shouldScroll ? sectionId : "";
+  state.pendingReaderReveal = shouldRevealReader;
   state.activeCategory = "";
   syncHash();
   render();
@@ -373,21 +421,32 @@ function renderReader() {
   `;
 
   const article = elements.readerPanel.querySelector(".reader-article");
+  const overviewTarget = elements.readerPanel.querySelector(".reader-heading");
   if (!article) {
     return;
   }
 
   normalizeReaderArticleHeadings(article);
 
+  if (state.pendingReaderReveal && !state.pendingScrollTarget) {
+    revealReaderPanel();
+  }
+
   const targetId = state.activeSectionId || "overview";
-  const target = article.querySelector(`#${CSS.escape(targetId)}`);
+  const target =
+    targetId === "overview"
+      ? overviewTarget
+      : article.querySelector(`#${CSS.escape(targetId)}`);
   if (target) {
-    target.classList.add("is-target");
+    if (targetId !== "overview") {
+      target.classList.add("is-target");
+    }
     if (state.pendingScrollTarget) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      scrollReaderTarget(target);
     }
   }
   state.pendingScrollTarget = "";
+  state.pendingReaderReveal = false;
 }
 
 function renderUtility() {
@@ -582,13 +641,14 @@ elements.tocPanel.addEventListener("click", (event) => {
   if (!button) {
     return;
   }
-  selectLocation(button.dataset.chapterId, "overview", false);
+  const shouldRevealReader = isStackedMobileLayout();
+  selectLocation(button.dataset.chapterId, "overview", shouldRevealReader, shouldRevealReader);
 });
 
 elements.readerPanel.addEventListener("click", (event) => {
   const actionButton = event.target.closest("[data-reader-action]");
   if (actionButton?.dataset.readerAction === "scroll-top") {
-    elements.readerPanel.scrollTo({ top: 0, behavior: "smooth" });
+    scrollToTop();
     return;
   }
 
@@ -612,7 +672,16 @@ elements.utilityPanel.addEventListener("click", (event) => {
   if (!locationButton) {
     return;
   }
-  selectLocation(locationButton.dataset.chapterId, locationButton.dataset.sectionId);
+  selectLocation(locationButton.dataset.chapterId, locationButton.dataset.sectionId, true, true);
+});
+
+elements.mobileActionBar?.addEventListener("click", (event) => {
+  const actionButton = event.target.closest("[data-reader-action]");
+  if (actionButton?.dataset.readerAction !== "scroll-top") {
+    return;
+  }
+
+  scrollToTop();
 });
 
 window.addEventListener("hashchange", () => {
