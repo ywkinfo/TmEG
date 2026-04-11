@@ -57,8 +57,8 @@ def collect_toc_lines(max_scan_page_limit: int) -> tuple[list[int], list[str]]:
     toc_pages: list[int] = []
     collected_lines: list[str] = []
 
-    for page_number in range(1, min(len(reader.pages), max_scan_page_limit) + 1):
-        text = extract_page_text(reader.pages[page_number - 1])
+    for page_number in range(1, min(reader.page_count, max_scan_page_limit) + 1):
+        text = extract_page_text(reader.load_page(page_number - 1))
         raw_lines = [normalize_toc_line(raw_line) for raw_line in text.splitlines()]
         if TOC_MARKER_RE.search(text) is None and not (toc_pages and looks_like_toc_page(raw_lines)):
             continue

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .common import (
+    count_image_blocks,
     detect_page_code,
     extract_page_text,
     extract_top_lines,
@@ -14,21 +15,24 @@ from .common import (
 def main() -> None:
     config = load_config()
     reader = open_pdf(config)
+    page_count = reader.page_count
     pages: list[dict[str, object]] = []
     image_pages = 0
     empty_pages = 0
 
-    for index, page in enumerate(reader.pages, start=1):
+    for index in range(page_count):
+        page_number = index + 1
+        page = reader.load_page(index)
         text = extract_page_text(page)
         top_lines = extract_top_lines(text)
-        image_count = len(getattr(page, "images", []) or [])
+        image_count = count_image_blocks(page)
         if image_count:
             image_pages += 1
         if not text:
             empty_pages += 1
         pages.append(
             {
-                "pageNumber": index,
+                "pageNumber": page_number,
                 "pageCode": detect_page_code(top_lines),
                 "charCount": len(text),
                 "imageCount": image_count,
@@ -40,7 +44,7 @@ def main() -> None:
     payload = {
         "meta": {
             "title": config["documentTitle"],
-            "pageCount": len(reader.pages),
+            "pageCount": page_count,
             "imagePageCount": image_pages,
             "emptyPageCount": empty_pages,
         },
@@ -51,7 +55,7 @@ def main() -> None:
         "inventory",
         {
             "target": str(target),
-            "pageCount": len(reader.pages),
+            "pageCount": page_count,
             "imagePageCount": image_pages,
             "emptyPageCount": empty_pages,
         },
