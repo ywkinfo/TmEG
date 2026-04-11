@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -206,7 +207,7 @@ class ContentGuardrailsTest(unittest.TestCase):
             },
             {
                 "type": 1,
-                "_relativePath": "public/generated/images/example.png",
+                "_relativePath": "generated/images/example.png",
                 "_pageNumber": 138,
                 "_pageCode": "30208",
             },
@@ -226,7 +227,7 @@ class ContentGuardrailsTest(unittest.TestCase):
             },
             {
                 "type": 1,
-                "_relativePath": "public/generated/images/example.png",
+                "_relativePath": "generated/images/example.png",
                 "_pageNumber": 138,
                 "_pageCode": "30208",
             },
@@ -239,8 +240,39 @@ class ContentGuardrailsTest(unittest.TestCase):
         html = blocks_to_html(blocks)
 
         self.assertIn('<figure class="reader-image">', html)
-        self.assertIn('src="public/generated/images/example.png"', html)
+        self.assertIn('src="generated/images/example.png"', html)
         self.assertIn('alt="상표 이미지 (p.138)"', html)
         self.assertIn('<figcaption>p.138 · 30208</figcaption>', html)
         self.assertLess(html.index("앞 문단"), html.index('<figure class="reader-image">'))
         self.assertLess(html.index('<figure class="reader-image">'), html.index("뒤 문단"))
+
+    def test_build_page_blocks_uses_generated_root_relative_image_paths(self) -> None:
+        image_bytes = b"example-image"
+        image_id = build_content.hashlib.sha1(image_bytes).hexdigest()[:12]
+        raw_image_block = {
+            "type": 1,
+            "image": image_bytes,
+            "ext": "png",
+            "mask": None,
+        }
+
+        class FakePage:
+            def get_image_info(self, hashes: bool = True, xrefs: bool = True) -> list[dict[str, int]]:
+                return [{"xref": 0}]
+
+        class FakeReader:
+            def load_page(self, index: int) -> FakePage:
+                self.loaded_index = index
+                return FakePage()
+
+        inventory = {"pages": [{"pageNumber": 138, "pageCode": "30208"}]}
+        image_manifest = {"images": [{"id": image_id, "relativePath": "images/example.png"}]}
+
+        with (
+            mock.patch.object(build_content, "extract_page_blocks", return_value=[raw_image_block]),
+            mock.patch.object(build_content, "match_inline_image_block", return_value=raw_image_block),
+            mock.patch.object(build_content, "normalize_image_bytes", return_value=(image_bytes, "png")),
+        ):
+            page_blocks = build_content.build_page_blocks(FakeReader(), inventory, image_manifest)
+
+        self.assertEqual(page_blocks[138][0]["_relativePath"], "generated/images/example.png")
