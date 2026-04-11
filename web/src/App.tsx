@@ -33,12 +33,40 @@ function HomePage({ data }: { data: ReaderData }): JSX.Element {
   return (
     <div className="page-stack">
       <section className="surface landing-hero">
-        <div>
-          <span className="eyebrow">Trademark Exam Harness</span>
-          <h1>상표심사기준을 glotm-style 모바일 리더 흐름으로 다시 엮었습니다.</h1>
+        <div className="chapter-hero-copy">
+          <span className="eyebrow">상표심사기준 웹앱 리더</span>
+          <h1>상표심사기준을 언제 어디서나 쉽게 참조할 수 있도록 웹앱 형태로 정리해 제공하는 페이지입니다.</h1>
           <p>
-            목차는 <code>toc.json</code>, 본문은 <code>document-data.json</code>, 검색과 라우팅은 <code>search-index.json</code>,
-            탐색 요약은 <code>exploration-index.json</code> 위에 그대로 얹었습니다.
+            특히, 복잡한 상표심사기준 관련 보조 참고자료는{" "}
+            <a
+              className="landing-copy-link"
+              href="https://notebooklm.google.com/notebook/a5eb446a-1308-440e-bacd-dd59f9ee8bbf"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Google NotebookLM 노트북
+            </a>
+            을 활용해 보세요. 방대한 데이터 속에서 필요한 정보를 AI가 신속하게 찾아내고 분석해 주어 심사 기준을 더욱
+            스마트하고 효율적으로 파악할 수 있습니다.
+          </p>
+          <p>
+            인하우스 팀의 해외 출원 등 전문적인 브랜드 관리 정보는{" "}
+            <a
+              className="landing-copy-link"
+              href="https://ywkinfo.github.io/glotm/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              GloTm 인하우스 팀을 위한 cross-border trademark operating guide
+            </a>
+            에서 함께 확인해 주세요.
+          </p>
+          <p>
+            이 사이트의 운영자 및 출원·상담·강연 및 심층 연구에 관한 자세한 안내는{" "}
+            <a className="landing-copy-link" href="https://ywkinfo.github.io" target="_blank" rel="noreferrer">
+              ywkinfo.github.io
+            </a>
+            에서 확인하실 수 있습니다.
           </p>
         </div>
         <div className="meta-grid">
