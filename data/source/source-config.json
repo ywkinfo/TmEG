@@ -1,0 +1,12 @@
+{
+  "documentTitle": "상표심사기준",
+  "sourcePdf": "data/source/상표심사기준.pdf",
+  "tocScanPageLimit": 24,
+  "expectedStructure": {
+    "pageCount": 575,
+    "partCount": 10,
+    "chapterCount": 85,
+    "itemCount": 319,
+    "supplementCount": 2
+  }
+}
