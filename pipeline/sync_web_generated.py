@@ -10,6 +10,7 @@ from .common import GENERATED_DIR, ROOT_DIR, fail, load_config, print_json_summa
 
 
 WEB_GENERATED_DIR = ROOT_DIR / "web" / "public" / "generated"
+WEB_GENERATED_IMAGES_DIR = WEB_GENERATED_DIR / "images"
 SYNC_FILENAMES = (
     "pdf-inventory.json",
     "toc.json",
@@ -35,11 +36,12 @@ def build_sync_plan(
     ]
 
 
-def build_manifest(title: str, file_entries: list[dict[str, Any]]) -> dict[str, Any]:
+def build_manifest(title: str, file_entries: list[dict[str, Any]], image_file_count: int = 0) -> dict[str, Any]:
     return {
         "title": title,
         "syncedAt": datetime.now(UTC).isoformat(),
         "fileCount": len(file_entries),
+        "imageFileCount": image_file_count,
         "files": file_entries,
     }
 
@@ -83,11 +85,25 @@ def sync_generated_files(
             }
         )
 
-    manifest = build_manifest(title=title, file_entries=file_entries)
+    source_images_dir = source_dir / "images"
+    if not source_images_dir.exists():
+        fail(
+            "웹 리더용 generated 이미지 디렉터리가 없습니다. 먼저 `npm run content:prepare`를 실행하세요.\n- "
+            + str(source_images_dir)
+        )
+
+    target_images_dir = target_dir / "images"
+    if target_images_dir.exists():
+        shutil.rmtree(target_images_dir)
+    shutil.copytree(source_images_dir, target_images_dir)
+    image_file_count = sum(1 for path in target_images_dir.rglob("*") if path.is_file())
+
+    manifest = build_manifest(title=title, file_entries=file_entries, image_file_count=image_file_count)
     manifest_path = write_manifest(target_dir=target_dir, manifest=manifest)
     return {
         "targetDir": str(target_dir),
         "fileCount": len(file_entries),
+        "imageFileCount": image_file_count,
         "manifestPath": str(manifest_path),
     }
 
