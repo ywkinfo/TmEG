@@ -19,6 +19,7 @@ web/node_modules/
 web/dist/
 web/public/generated/*
 !web/public/generated/.gitkeep
+!web/public/generated/*.json
 
 # OS
 .DS_Store

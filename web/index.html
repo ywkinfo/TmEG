@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>상표심사기준 리더</title>
+    <link rel="stylesheet" href="./src/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div>
+          <p class="eyebrow">Trademark Exam Harness</p>
+          <h1>상표심사기준 로컬 리더</h1>
+          <p class="hero-copy">
+            상표심사기준 내용을 웹에서 쉽게 살펴볼 수 있게 정리한 페이지입니다. 목차로
+            이동하고, 본문을 읽고, 검색하거나 주제별로 찾아볼 수 있습니다.
+          </p>
+        </div>
+        <div class="hero-meta" id="hero-meta" aria-live="polite"></div>
+      </header>
+
+      <div class="workspace">
+        <aside class="panel toc-panel">
+          <div class="panel-header">
+            <p class="panel-kicker">Contents</p>
+            <h2>목차</h2>
+          </div>
+          <div id="toc-panel" class="panel-body" aria-live="polite"></div>
+        </aside>
+
+        <main class="panel reader-panel">
+          <div class="panel-header">
+            <p class="panel-kicker">Reader</p>
+            <h2>본문</h2>
+          </div>
+          <div id="reader-panel" class="panel-body" aria-live="polite"></div>
+        </main>
+
+        <aside class="panel utility-panel">
+          <div class="panel-header">
+            <p class="panel-kicker">Search</p>
+            <h2>검색과 탐색</h2>
+          </div>
+          <div class="search-box">
+            <label class="visually-hidden" for="search-input">검색어</label>
+            <input
+              id="search-input"
+              type="search"
+              placeholder="장 제목, 항목명, 본문 일부를 검색하세요"
+              autocomplete="off"
+            />
+            <button id="search-reset" type="button">초기화</button>
+          </div>
+          <div id="utility-panel" class="panel-body" aria-live="polite"></div>
+        </aside>
+      </div>
+    </div>
+
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
