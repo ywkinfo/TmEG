@@ -66,6 +66,42 @@ def assign_ranges(entries: list[dict[str, Any]], default_end_page: int) -> list[
     return entries
 
 
+def trim_overview_ranges(
+    chapters: list[dict[str, Any]], section_entries: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    chapters_by_slug = {chapter["slug"]: chapter for chapter in chapters}
+    section_entries_by_chapter: dict[str, list[dict[str, Any]]] = defaultdict(list)
+
+    for entry in section_entries:
+        section_entries_by_chapter[entry["chapterSlug"]].append(entry)
+
+    for chapter_slug, chapter_entries in section_entries_by_chapter.items():
+        overview_entry = next(
+            (entry for entry in chapter_entries if entry["entryType"] == "overview"),
+            None,
+        )
+        if overview_entry is None:
+            continue
+
+        chapter = chapters_by_slug.get(chapter_slug)
+        if chapter is None:
+            continue
+
+        child_page_starts = sorted(
+            entry["pageStart"]
+            for entry in chapter_entries
+            if entry["entryType"] != "overview" and entry.get("pageStart") is not None
+        )
+        first_child_start = child_page_starts[0] if child_page_starts else None
+
+        overview_entry["pageStart"] = chapter.get("pageStart")
+        overview_entry["pageEnd"] = (
+            chapter.get("pageEnd") if first_child_start is None else first_child_start - 1
+        )
+
+    return section_entries
+
+
 def join_page_range(
     page_texts: dict[int, str],
     start_page: int | None,
@@ -251,6 +287,7 @@ def main() -> None:
 
     chapters_in_order = assign_ranges(chapters_in_order, default_end_page)
     section_entries = assign_ranges(section_entries, default_end_page)
+    section_entries = trim_overview_ranges(chapters_in_order, section_entries)
     section_entries_by_chapter: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entry in section_entries:
         entry_text = join_page_range(
@@ -267,6 +304,11 @@ def main() -> None:
     built_chapters: list[dict[str, Any]] = []
     for chapter_record in chapters_in_order:
         chapter_sections = section_entries_by_chapter[chapter_record["slug"]]
+        overview_entry = next(
+            (entry for entry in chapter_sections if entry["entryType"] == "overview"),
+            None,
+        )
+        overview_text = overview_entry["text"] if overview_entry else ""
         chapter_text = join_page_range(
             page_texts,
             chapter_record["pageStart"],
@@ -276,9 +318,10 @@ def main() -> None:
         html_parts = [
             "<section id=\"overview\">",
             f"<h2>{chapter_record['title']}</h2>",
-            text_to_html(chapter_text),
-            "</section>",
         ]
+        if overview_text:
+            html_parts.append(text_to_html(overview_text))
+        html_parts.append("</section>")
         for entry in chapter_sections:
             if entry["entryType"] == "overview":
                 continue

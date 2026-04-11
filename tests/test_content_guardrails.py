@@ -6,7 +6,10 @@ from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
-build_code_to_page_map = importlib.import_module("pipeline.build_content").build_code_to_page_map
+build_content = importlib.import_module("pipeline.build_content")
+build_code_to_page_map = build_content.build_code_to_page_map
+join_page_range = build_content.join_page_range
+trim_overview_ranges = build_content.trim_overview_ranges
 collect_guardrail_errors = importlib.import_module("pipeline.qa_content").collect_guardrail_errors
 
 
@@ -109,3 +112,82 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertTrue(any("chapter html looks like toc: chapter-html" in error for error in errors))
         self.assertTrue(any("search entry excerpt looks like toc: search-1" in error for error in errors))
         self.assertTrue(any("exploration entry excerpt looks like toc: explore-1" in error for error in errors))
+
+    def test_trim_overview_ranges_stops_before_first_child_page(self) -> None:
+        chapters = [
+            {
+                "slug": "chapter-1",
+                "pageStart": 10,
+                "pageEnd": 14,
+            }
+        ]
+        section_entries = [
+            {
+                "id": "chapter-1-overview",
+                "chapterSlug": "chapter-1",
+                "entryType": "overview",
+                "pageStart": 10,
+                "pageEnd": 14,
+            },
+            {
+                "id": "item-1",
+                "chapterSlug": "chapter-1",
+                "entryType": "item",
+                "pageStart": 12,
+                "pageEnd": 14,
+            },
+        ]
+        page_texts = {
+            10: "개요 첫 문단",
+            11: "개요 둘째 문단",
+            12: "제1절 본문",
+            13: "제1절 계속",
+        }
+
+        trim_overview_ranges(chapters, section_entries)
+        overview_entry = section_entries[0]
+
+        self.assertEqual(overview_entry["pageStart"], 10)
+        self.assertEqual(overview_entry["pageEnd"], 11)
+        self.assertEqual(
+            join_page_range(page_texts, overview_entry["pageStart"], overview_entry["pageEnd"]),
+            "개요 첫 문단\n\n개요 둘째 문단",
+        )
+
+    def test_trim_overview_ranges_leaves_title_only_when_first_child_starts_at_chapter_start(self) -> None:
+        chapters = [
+            {
+                "slug": "chapter-1",
+                "pageStart": 20,
+                "pageEnd": 24,
+            }
+        ]
+        section_entries = [
+            {
+                "id": "chapter-1-overview",
+                "chapterSlug": "chapter-1",
+                "entryType": "overview",
+                "pageStart": 20,
+                "pageEnd": 24,
+            },
+            {
+                "id": "item-1",
+                "chapterSlug": "chapter-1",
+                "entryType": "item",
+                "pageStart": 20,
+                "pageEnd": 24,
+            },
+        ]
+        page_texts = {
+            20: "제1절 본문",
+            21: "제1절 계속",
+        }
+
+        trim_overview_ranges(chapters, section_entries)
+        overview_entry = section_entries[0]
+
+        self.assertEqual(overview_entry["pageEnd"], 19)
+        self.assertEqual(
+            join_page_range(page_texts, overview_entry["pageStart"], overview_entry["pageEnd"]),
+            "",
+        )
