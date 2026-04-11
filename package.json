@@ -1,0 +1,13 @@
+{
+  "name": "trademark-exam-harness",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "content:inventory": "python -m pipeline.build_inventory",
+    "content:toc": "python -m pipeline.build_toc",
+    "content:build": "python -m pipeline.build_content",
+    "content:qa": "python -m pipeline.qa_content",
+    "content:prepare": "npm run content:inventory && npm run content:toc && npm run content:build && npm run content:qa",
+    "test": "python -m pytest tests/ -v"
+  }
+}

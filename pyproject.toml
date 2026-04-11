@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "trademark-exam-harness"
+version = "0.1.0"
+description = "한국 상표심사기준 PDF 구조화 하니스"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["pypdf>=4.0"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+include = ["pipeline*"]
