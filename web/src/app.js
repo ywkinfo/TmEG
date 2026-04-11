@@ -104,6 +104,12 @@ function renderImageBadge(hasImage, imageCount) {
   `;
 }
 
+function normalizeReaderArticleHeadings(root) {
+  for (const heading of root.querySelectorAll("h2, h3")) {
+    heading.textContent = stripGuideDots(heading.textContent);
+  }
+}
+
 function getCurrentChapter() {
   return (
     state.documentData?.chapters.find((chapter) => chapter.id === state.currentChapterId) ?? null
@@ -354,6 +360,13 @@ function renderReader() {
             `
           )
           .join("")}
+        <button
+          type="button"
+          class="section-jump section-jump-top"
+          data-reader-action="scroll-top"
+        >
+          위로 이동
+        </button>
       </nav>
       <div class="reader-article">${chapter.html}</div>
     </article>
@@ -363,6 +376,8 @@ function renderReader() {
   if (!article) {
     return;
   }
+
+  normalizeReaderArticleHeadings(article);
 
   const targetId = state.activeSectionId || "overview";
   const target = article.querySelector(`#${CSS.escape(targetId)}`);
@@ -571,6 +586,12 @@ elements.tocPanel.addEventListener("click", (event) => {
 });
 
 elements.readerPanel.addEventListener("click", (event) => {
+  const actionButton = event.target.closest("[data-reader-action]");
+  if (actionButton?.dataset.readerAction === "scroll-top") {
+    elements.readerPanel.scrollTo({ top: 0, behavior: "smooth" });
+    return;
+  }
+
   const button = event.target.closest("[data-section-id][data-chapter-id]");
   if (!button) {
     return;

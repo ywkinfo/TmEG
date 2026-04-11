@@ -257,8 +257,13 @@ input {
 
 .reader-article-shell {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   animation: fade-up 280ms ease;
+}
+
+.reader-article-shell > * {
+  min-width: 0;
 }
 
 .reader-heading h3 {
@@ -266,6 +271,14 @@ input {
   font-family: var(--reader-font);
   font-size: clamp(1.7rem, 3vw, 2.5rem);
   line-height: 1.15;
+}
+
+.reader-heading h3,
+.reader-summary,
+.reader-article h2,
+.reader-article h3,
+.reader-article p {
+  overflow-wrap: anywhere;
 }
 
 .reader-summary {
@@ -302,6 +315,12 @@ input {
   gap: 8px;
   padding: 10px 12px;
   border-radius: 999px;
+}
+
+.section-jump-top {
+  margin-left: auto;
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .filter-chip span {
@@ -529,22 +548,6 @@ input {
 
   .hero-meta {
     grid-template-columns: 1fr 1fr;
-  }
-
-  .reader-article-shell {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .reader-article-shell > * {
-    min-width: 0;
-  }
-
-  .reader-heading h3,
-  .reader-summary,
-  .reader-article h2,
-  .reader-article h3,
-  .reader-article p {
-    overflow-wrap: anywhere;
   }
 
   .reader-article {
