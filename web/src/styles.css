@@ -531,6 +531,22 @@ input {
     grid-template-columns: 1fr 1fr;
   }
 
+  .reader-article-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .reader-article-shell > * {
+    min-width: 0;
+  }
+
+  .reader-heading h3,
+  .reader-summary,
+  .reader-article h2,
+  .reader-article h3,
+  .reader-article p {
+    overflow-wrap: anywhere;
+  }
+
   .reader-article {
     padding: 16px;
   }
@@ -541,6 +557,8 @@ input {
 
   .reader-article .reader-image {
     margin: 1.4rem 0;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
     padding: 10px;
     border-radius: 16px;
   }
