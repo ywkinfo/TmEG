@@ -227,7 +227,7 @@ def build_page_blocks(
                     "_pageNumber": page_number,
                     "_pageCode": page_code,
                     "_imageId": manifest_image["id"],
-                    "_relativePath": f"generated/{manifest_image['relativePath']}",
+                    "_relativePath": f"public/generated/{manifest_image['relativePath']}",
                 }
             )
 

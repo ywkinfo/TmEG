@@ -103,7 +103,7 @@ def main() -> None:
     toc_pages = set(toc["meta"].get("tocPages", []))
     inventory_pages = {page["pageNumber"]: page for page in inventory["pages"]}
     manifest_image_paths = {
-        f"generated/{image['relativePath']}"
+        f"public/generated/{image['relativePath']}"
         for image in image_manifest.get("images", [])
         if image.get("relativePath")
     }
