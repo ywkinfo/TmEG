@@ -170,6 +170,71 @@ def text_to_html(text: str) -> str:
     return "\n".join(paragraphs)
 
 
+def text_block_to_text(block: dict[str, Any]) -> str:
+    if block.get("type") != 0:
+        return ""
+
+    lines: list[str] = []
+    for line in block.get("lines", []):
+        line_text = "".join(span.get("text", "") for span in line.get("spans", []))
+        line_text = line_text.replace("\x00", "").rstrip()
+        if line_text.strip():
+            lines.append(line_text.strip())
+    return "\n".join(lines).strip()
+
+
+def blocks_to_text(blocks: list[dict[str, Any]]) -> str:
+    text_blocks = [text_block_to_text(block) for block in blocks if block.get("type") == 0]
+    return "\n\n".join(block for block in text_blocks if block).strip()
+
+
+def blocks_to_html(blocks: list[dict[str, Any]]) -> str:
+    html_blocks: list[str] = []
+
+    for block in blocks:
+        block_type = block.get("type")
+        if block_type == 0:
+            block_text = text_block_to_text(block)
+            if block_text:
+                html_blocks.append(text_to_html(block_text))
+            continue
+
+        if block_type != 1:
+            continue
+
+        relative_path = block.get("_relativePath")
+        if not relative_path:
+            continue
+
+        page_number = block.get("_pageNumber")
+        page_code = block.get("_pageCode")
+        alt_text = f"상표 이미지 (p.{page_number})" if page_number else "상표 이미지"
+        caption_parts = [f"p.{page_number}"] if page_number else []
+        if page_code:
+            caption_parts.append(str(page_code))
+        caption_html = (
+            f"<figcaption>{escape(' · '.join(caption_parts))}</figcaption>" if caption_parts else ""
+        )
+        html_blocks.append(
+            "\n".join(
+                [
+                    '<figure class="reader-image">',
+                    (
+                        f'<a href="{escape(relative_path)}" target="_blank" rel="noreferrer">'
+                        f'<img src="{escape(relative_path)}" loading="lazy" alt="{escape(alt_text)}" />'
+                        "</a>"
+                    ),
+                    caption_html,
+                    "</figure>",
+                ]
+            ).replace("\n\n", "\n")
+        )
+
+    if not html_blocks:
+        return "<p></p>"
+    return "\n".join(html_blocks)
+
+
 def load_page_texts(reader: pymupdf.Document) -> dict[int, str]:
     return {index + 1: extract_page_text(reader.load_page(index)) for index in range(reader.page_count)}
 

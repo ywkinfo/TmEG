@@ -1,17 +1,20 @@
 from __future__ import annotations
 
+import hashlib
 from collections import defaultdict
 from datetime import UTC, datetime
 from typing import Any
 
+from .build_images import match_inline_image_block, normalize_image_bytes
 from .common import (
+    blocks_to_html,
+    blocks_to_text,
+    extract_page_blocks,
     load_config,
     load_generated_json,
-    load_page_texts,
     make_excerpt,
     open_pdf,
     print_json_summary,
-    text_to_html,
     write_json,
 )
 
@@ -121,6 +124,118 @@ def join_page_range(
     return "\n\n".join(chunks).strip()
 
 
+def join_page_blocks(
+    page_blocks: dict[int, list[dict[str, Any]]],
+    start_page: int | None,
+    end_page: int | None,
+    excluded_pages: set[int] | None = None,
+) -> list[dict[str, Any]]:
+    if start_page is None or end_page is None:
+        return []
+    excluded_page_set = excluded_pages or set()
+    blocks: list[dict[str, Any]] = []
+    for page_number in range(start_page, end_page + 1):
+        if page_number in excluded_page_set:
+            continue
+        blocks.extend(page_blocks.get(page_number, []))
+    return blocks
+
+
+def count_content_images(blocks: list[dict[str, Any]]) -> int:
+    return sum(1 for block in blocks if block.get("type") == 1)
+
+
+def build_image_manifest_lookup(image_manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {image["id"]: image for image in image_manifest.get("images", [])}
+
+
+def build_page_blocks(
+    reader: Any,
+    inventory: dict[str, Any],
+    image_manifest: dict[str, Any],
+) -> dict[int, list[dict[str, Any]]]:
+    image_lookup = build_image_manifest_lookup(image_manifest)
+    page_blocks: dict[int, list[dict[str, Any]]] = {}
+
+    for page_meta in inventory["pages"]:
+        page_number = page_meta["pageNumber"]
+        page_code = page_meta.get("pageCode")
+        page = reader.load_page(page_number - 1)
+        raw_blocks = extract_page_blocks(page)
+        raw_image_blocks = [
+            (index, block) for index, block in enumerate(raw_blocks) if block.get("type") == 1
+        ]
+        image_blocks = [block for _, block in raw_image_blocks]
+        used_indices: set[int] = set()
+        matched_assets: dict[int, dict[str, Any]] = {}
+
+        for info in page.get_image_info(hashes=True, xrefs=True):
+            matched_block = match_inline_image_block(info, image_blocks, used_indices)
+            if matched_block is None:
+                continue
+
+            raw_index = next(
+                index for index, candidate in raw_image_blocks if candidate is matched_block
+            )
+            xref = int(info.get("xref") or 0)
+            if xref > 0:
+                extracted = reader.extract_image(xref)
+                mask_bytes = None
+                smask = int(extracted.get("smask") or 0)
+                if smask > 0:
+                    mask_bytes = reader.extract_image(smask)["image"]
+                image_bytes, _ = normalize_image_bytes(
+                    extracted["image"],
+                    str(extracted.get("ext") or "png"),
+                    mask_bytes,
+                )
+            else:
+                image_bytes, _ = normalize_image_bytes(
+                    matched_block["image"],
+                    str(matched_block.get("ext") or "png"),
+                    matched_block.get("mask"),
+                )
+
+            image_id = hashlib.sha1(image_bytes).hexdigest()[:12]
+            manifest_image = image_lookup.get(image_id)
+            if manifest_image is None:
+                continue
+            matched_assets[raw_index] = manifest_image
+
+        enriched_blocks: list[dict[str, Any]] = []
+        for index, block in enumerate(raw_blocks):
+            if block.get("type") == 0:
+                enriched_blocks.append(
+                    {
+                        **block,
+                        "_pageNumber": page_number,
+                        "_pageCode": page_code,
+                    }
+                )
+                continue
+
+            if block.get("type") != 1:
+                continue
+
+            manifest_image = matched_assets.get(index)
+            if manifest_image is None:
+                continue
+
+            enriched_blocks.append(
+                {
+                    **block,
+                    "_pageNumber": page_number,
+                    "_pageCode": page_code,
+                    "_imageId": manifest_image["id"],
+                    "_relativePath": f"generated/{manifest_image['relativePath']}",
+                }
+            )
+
+        page_blocks[page_number] = enriched_blocks
+
+    return page_blocks
+
+
 def classify_entry(entry: dict[str, Any]) -> list[str]:
     title = entry["sectionTitle"]
     categories: list[str] = []
@@ -176,8 +291,9 @@ def main() -> None:
     config = load_config()
     inventory = load_generated_json("pdf-inventory.json")
     toc = load_generated_json("toc.json")
+    image_manifest = load_generated_json("image-manifest.json")
     reader = open_pdf(config)
-    page_texts = load_page_texts(reader)
+    page_blocks = build_page_blocks(reader, inventory, image_manifest)
     toc_pages = set(toc["meta"].get("tocPages", []))
     page_code_map = build_code_to_page_map(inventory, toc_pages)
     default_end_page = inventory["meta"]["pageCount"]
@@ -290,15 +406,19 @@ def main() -> None:
     section_entries = trim_overview_ranges(chapters_in_order, section_entries)
     section_entries_by_chapter: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for entry in section_entries:
-        entry_text = join_page_range(
-            page_texts,
+        entry_blocks = join_page_blocks(
+            page_blocks,
             entry["pageStart"],
             entry["pageEnd"],
             excluded_pages=toc_pages,
         )
+        entry_text = blocks_to_text(entry_blocks)
         entry["text"] = entry_text
+        entry["html"] = blocks_to_html(entry_blocks)
         entry["excerpt"] = make_excerpt(entry_text)
         entry["categories"] = classify_entry(entry)
+        entry["imageCount"] = count_content_images(entry_blocks)
+        entry["hasImage"] = entry["imageCount"] > 0
         section_entries_by_chapter[entry["chapterSlug"]].append(entry)
 
     built_chapters: list[dict[str, Any]] = []
@@ -308,19 +428,20 @@ def main() -> None:
             (entry for entry in chapter_sections if entry["entryType"] == "overview"),
             None,
         )
-        overview_text = overview_entry["text"] if overview_entry else ""
-        chapter_text = join_page_range(
-            page_texts,
+        chapter_blocks = join_page_blocks(
+            page_blocks,
             chapter_record["pageStart"],
             chapter_record["pageEnd"],
             excluded_pages=toc_pages,
         )
+        chapter_text = blocks_to_text(chapter_blocks)
+        chapter_image_count = sum(entry["imageCount"] for entry in chapter_sections)
         html_parts = [
             "<section id=\"overview\">",
             f"<h2>{chapter_record['title']}</h2>",
         ]
-        if overview_text:
-            html_parts.append(text_to_html(overview_text))
+        if overview_entry and (overview_entry["text"] or overview_entry["hasImage"]):
+            html_parts.append(overview_entry["html"])
         html_parts.append("</section>")
         for entry in chapter_sections:
             if entry["entryType"] == "overview":
@@ -330,7 +451,7 @@ def main() -> None:
                 [
                     f"<section id=\"{entry['sectionId']}\">",
                     f"<{heading_tag}>{entry['sectionTitle']}</{heading_tag}>",
-                    text_to_html(entry["text"]),
+                    entry["html"],
                     "</section>",
                 ]
             )
@@ -341,6 +462,8 @@ def main() -> None:
                 "title": chapter_record["title"],
                 "summary": make_excerpt(chapter_text),
                 "html": "\n".join(html_parts),
+                "hasImage": chapter_image_count > 0,
+                "imageCount": chapter_image_count,
                 "headings": build_headings(chapter_record["raw"]),
                 "partTitle": chapter_record["partTitle"],
                 "pageCode": chapter_record["pageCode"],
@@ -363,6 +486,8 @@ def main() -> None:
             "pageCode": entry["pageCode"],
             "pageStart": entry["pageStart"],
             "pageEnd": entry["pageEnd"],
+            "hasImage": entry["hasImage"],
+            "imageCount": entry["imageCount"],
             "categories": entry["categories"],
         }
         for entry in section_entries
@@ -379,6 +504,7 @@ def main() -> None:
             "pageCode": entry["pageCode"],
             "pageStart": entry["pageStart"],
             "pageEnd": entry["pageEnd"],
+            "hasImage": entry["hasImage"],
             "excerpt": entry["excerpt"],
         }
         for entry in search_index
@@ -410,6 +536,14 @@ def main() -> None:
         "mappedSectionCount": sum(1 for entry in section_entries if entry["pageStart"] is not None),
         "unmappedSectionCount": sum(1 for entry in section_entries if entry["pageStart"] is None),
         "fallbackPageStartCount": sum(1 for entry in section_entries if entry["usedFallbackPageStart"]),
+        "imageFileCount": len(image_manifest.get("images", [])),
+        "excludedImageCount": max(
+            sum(int(page.get("imageCount", 0)) for page in inventory["pages"])
+            - sum(entry["imageCount"] for entry in section_entries),
+            0,
+        ),
+        "totalImageBytes": sum(int(image.get("byteSize", 0)) for image in image_manifest.get("images", [])),
+        "chaptersWithImages": sum(1 for chapter in built_chapters if chapter["hasImage"]),
         "missingPageCodes": sorted(set(code for code in missing_page_codes if code)),
     }
 

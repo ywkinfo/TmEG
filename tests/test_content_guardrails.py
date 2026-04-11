@@ -7,9 +7,12 @@ from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
 build_content = importlib.import_module("pipeline.build_content")
+common = importlib.import_module("pipeline.common")
 build_code_to_page_map = build_content.build_code_to_page_map
 join_page_range = build_content.join_page_range
 trim_overview_ranges = build_content.trim_overview_ranges
+blocks_to_html = common.blocks_to_html
+blocks_to_text = common.blocks_to_text
 collect_guardrail_errors = importlib.import_module("pipeline.qa_content").collect_guardrail_errors
 
 
@@ -191,3 +194,53 @@ class ContentGuardrailsTest(unittest.TestCase):
             join_page_range(page_texts, overview_entry["pageStart"], overview_entry["pageEnd"]),
             "",
         )
+
+    def test_blocks_to_text_ignores_image_blocks(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "lines": [
+                    {"spans": [{"text": "첫 문단"}]},
+                    {"spans": [{"text": "둘째 줄"}]},
+                ],
+            },
+            {
+                "type": 1,
+                "_relativePath": "generated/images/example.png",
+                "_pageNumber": 138,
+                "_pageCode": "30208",
+            },
+            {
+                "type": 0,
+                "lines": [{"spans": [{"text": "마지막 문단"}]}],
+            },
+        ]
+
+        self.assertEqual(blocks_to_text(blocks), "첫 문단\n둘째 줄\n\n마지막 문단")
+
+    def test_blocks_to_html_renders_text_and_image_blocks_in_order(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "lines": [{"spans": [{"text": "앞 문단"}]}],
+            },
+            {
+                "type": 1,
+                "_relativePath": "generated/images/example.png",
+                "_pageNumber": 138,
+                "_pageCode": "30208",
+            },
+            {
+                "type": 0,
+                "lines": [{"spans": [{"text": "뒤 문단"}]}],
+            },
+        ]
+
+        html = blocks_to_html(blocks)
+
+        self.assertIn('<figure class="reader-image">', html)
+        self.assertIn('src="generated/images/example.png"', html)
+        self.assertIn('alt="상표 이미지 (p.138)"', html)
+        self.assertIn('<figcaption>p.138 · 30208</figcaption>', html)
+        self.assertLess(html.index("앞 문단"), html.index('<figure class="reader-image">'))
+        self.assertLess(html.index('<figure class="reader-image">'), html.index("뒤 문단"))

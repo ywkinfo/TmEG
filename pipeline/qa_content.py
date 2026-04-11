@@ -8,6 +8,7 @@ from .common import GENERATED_DIR, load_config, load_generated_json, normalize_s
 
 
 HTML_TAG_RE = re.compile(r"<[^>]+>")
+IMG_SRC_RE = re.compile(r'<img[^>]+src="([^"]+)"', re.IGNORECASE)
 
 
 def normalize_leading_text(value: str) -> str:
@@ -101,6 +102,14 @@ def main() -> None:
     coverage = load_generated_json("coverage-report.json")
     toc_pages = set(toc["meta"].get("tocPages", []))
     inventory_pages = {page["pageNumber"]: page for page in inventory["pages"]}
+    manifest_image_paths = {
+        f"generated/{image['relativePath']}"
+        for image in image_manifest.get("images", [])
+        if image.get("relativePath")
+    }
+    search_index_by_key = {
+        (entry["id"], entry["chapterTitle"], entry["pageStart"]): entry for entry in search_index
+    }
 
     errors: list[str] = []
 
@@ -151,6 +160,41 @@ def main() -> None:
             page_meta = inventory_pages.get(page_number)
             if page_meta and is_decorative_page(page_meta, image_exclusion):
                 errors.append(f"image manifest includes decorative page: {image_id} -> {page_number}")
+
+    for chapter in document_data.get("chapters", []):
+        chapter_id = chapter.get("id", "<unknown>")
+        has_image = bool(chapter.get("hasImage"))
+        image_count = int(chapter.get("imageCount", 0) or 0)
+        if has_image != (image_count > 0):
+            errors.append(f"chapter image metadata mismatch: {chapter_id}")
+
+        image_sources = IMG_SRC_RE.findall(chapter.get("html", ""))
+        if len(image_sources) != image_count:
+            errors.append(
+                f"chapter image count does not match html img tags: {chapter_id} -> {image_count} vs {len(image_sources)}"
+            )
+        for src in image_sources:
+            if src not in manifest_image_paths:
+                errors.append(f"chapter html references unknown image src: {chapter_id} -> {src}")
+
+    for entry in search_index:
+        entry_id = entry.get("id", "<unknown>")
+        has_image = bool(entry.get("hasImage"))
+        image_count = int(entry.get("imageCount", 0) or 0)
+        if has_image != (image_count > 0):
+            errors.append(f"search image metadata mismatch: {entry_id}")
+
+    for entry in exploration_index:
+        entry_id = entry.get("id", "<unknown>")
+        has_image = entry.get("hasImage")
+        if has_image is None:
+            errors.append(f"exploration entry missing hasImage: {entry_id}")
+            continue
+        search_entry = search_index_by_key.get(
+            (entry_id, entry.get("chapterTitle"), entry.get("pageStart"))
+        )
+        if search_entry and bool(has_image) != bool(search_entry.get("hasImage")):
+            errors.append(f"exploration image metadata mismatch: {entry_id}")
 
     errors.extend(
         collect_guardrail_errors(
