@@ -8,5 +8,12 @@
     "chapterCount": 85,
     "itemCount": 319,
     "supplementCount": 2
+  },
+  "imageExclusion": {
+    "minDimensionPx": 20,
+    "maxPageRepetitions": 10,
+    "excludeCoverPages": [1],
+    "decorativePageCharCountMax": 50,
+    "decorativePageMinImageCount": 2
   }
 }
