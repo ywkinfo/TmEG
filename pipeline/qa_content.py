@@ -3,7 +3,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
-from .common import load_config, load_generated_json, normalize_space
+from .build_images import is_decorative_page, load_image_exclusion
+from .common import GENERATED_DIR, load_config, load_generated_json, normalize_space
 
 
 HTML_TAG_RE = re.compile(r"<[^>]+>")
@@ -90,13 +91,16 @@ def main() -> None:
     config = load_config()
     expected = config["expectedStructure"]
     document_title = config["documentTitle"]
+    image_exclusion = load_image_exclusion(config)
     inventory = load_generated_json("pdf-inventory.json")
     toc = load_generated_json("toc.json")
+    image_manifest = load_generated_json("image-manifest.json")
     document_data = load_generated_json("document-data.json")
     search_index = load_generated_json("search-index.json")
     exploration_index = load_generated_json("exploration-index.json")
     coverage = load_generated_json("coverage-report.json")
     toc_pages = set(toc["meta"].get("tocPages", []))
+    inventory_pages = {page["pageNumber"]: page for page in inventory["pages"]}
 
     errors: list[str] = []
 
@@ -123,6 +127,30 @@ def main() -> None:
 
     if coverage["unmappedSectionCount"] != 0:
         errors.append(f"unmappedSectionCount: {coverage['unmappedSectionCount']}")
+
+    for image in image_manifest.get("images", []):
+        image_id = image.get("id", "<unknown>")
+        relative_path = image.get("relativePath")
+        if not relative_path:
+            errors.append(f"image manifest entry has no relativePath: {image_id}")
+            continue
+        image_path = GENERATED_DIR / relative_path
+        if not image_path.exists():
+            errors.append(f"image file missing: {image_id} -> {image_path}")
+            continue
+        if image_path.stat().st_size != image.get("byteSize"):
+            errors.append(
+                f"image byteSize mismatch: {image_id} -> expected {image.get('byteSize')}, got {image_path.stat().st_size}"
+            )
+
+        for page_number in image.get("pageNumbers", []):
+            if page_number in toc_pages:
+                errors.append(f"image manifest includes toc page: {image_id} -> {page_number}")
+            if page_number in set(image_exclusion["excludeCoverPages"]):
+                errors.append(f"image manifest includes excluded cover page: {image_id} -> {page_number}")
+            page_meta = inventory_pages.get(page_number)
+            if page_meta and is_decorative_page(page_meta, image_exclusion):
+                errors.append(f"image manifest includes decorative page: {image_id} -> {page_number}")
 
     errors.extend(
         collect_guardrail_errors(
