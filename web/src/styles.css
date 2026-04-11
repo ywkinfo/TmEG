@@ -495,6 +495,19 @@ input {
   border-color: rgba(178, 74, 47, 0.25);
 }
 
+.mobile-action-bar {
+  display: none;
+}
+
+.mobile-action-button {
+  justify-content: center;
+  min-width: 7.5rem;
+  padding-inline: 18px;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
@@ -519,6 +532,10 @@ input {
 }
 
 @media (max-width: 1180px) {
+  .app-shell {
+    padding-bottom: 92px;
+  }
+
   .workspace {
     grid-template-columns: 1fr;
   }
@@ -530,12 +547,38 @@ input {
   .hero {
     grid-template-columns: 1fr;
   }
+
+  .mobile-action-bar {
+    position: fixed;
+    left: 50%;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    max-width: calc(100vw - 32px);
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255, 251, 242, 0.94);
+    box-shadow: var(--shadow-soft);
+    transform: translateX(-50%);
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .mobile-action-bar .mobile-action-button {
+    pointer-events: auto;
+  }
 }
 
 @media (max-width: 720px) {
   .app-shell {
     width: min(100% - 18px, 1500px);
     padding-top: 14px;
+  }
+
+  .mobile-action-bar {
+    bottom: max(12px, env(safe-area-inset-bottom));
   }
 
   .hero,
