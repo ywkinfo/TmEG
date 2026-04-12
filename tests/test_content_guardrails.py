@@ -329,16 +329,11 @@ class ContentGuardrailsTest(unittest.TestCase):
 
         html = blocks_to_html(blocks)
 
-        self.assertIn('reader-synthetic-figure', html)
+        self.assertIn('<figure class="reader-image">', html)
         self.assertIn('<figcaption>《마지막 월에 해당일이 없는 경우 기간의 만료일》</figcaption>', html)
-        self.assertIn('<th scope="row">표시</th>', html)
-        self.assertIn('<td>기산일</td>', html)
-        self.assertIn('<th scope="row">날짜</th>', html)
-        self.assertIn('<td>2월 28일</td>', html)
-        self.assertIn('<th scope="row">기간</th><td colspan="3">지정기간 2개월</td>', html)
-        self.assertIn('지정기간 2개월', html)
-        self.assertLess(html.index("앞 설명 문단"), html.index('reader-synthetic-figure'))
-        self.assertLess(html.index('reader-synthetic-figure'), html.index("2.2.4 상표에 관한 절차에 있어서"))
+        self.assertIn('src="generated/images/3d4c8a2e7b9f.png"', html)
+        self.assertLess(html.index("앞 설명 문단"), html.index('generated/images/3d4c8a2e7b9f.png'))
+        self.assertLess(html.index('generated/images/3d4c8a2e7b9f.png'), html.index("2.2.4 상표에 관한 절차에 있어서"))
         self.assertEqual(
             blocks_to_text(blocks),
             "앞 설명 문단\n\n《마지막 월에 해당일이 없는 경우 기간의 만료일》\n\n12월 30일\n\n12월 31일\n\n2월 28일\n\n지정기간 2개월\n\n통지서송달일\n\n기 산 일\n\n지정기간만료\n\n2.2.4 상표에 관한 절차에 있어서 기간의 말일이 공휴일에 해당하면 기간은 다음 날로 만료한다.",
@@ -382,14 +377,11 @@ class ContentGuardrailsTest(unittest.TestCase):
 
         html = blocks_to_html(blocks)
 
-        self.assertIn('reader-synthetic-figure', html)
+        self.assertIn('<figure class="reader-image">', html)
         self.assertIn('<figcaption>《기간 만료일이 공휴일인 경우 기간연장 기산일》</figcaption>', html)
-        self.assertIn('<th scope="row">날짜 흐름</th>', html)
-        self.assertIn('7.19 → 7.20 → 9.19(수) → 9.20(목) → 9.24(월) → 10.19(목)', html)
-        self.assertIn('통지서송달일 · 기산일 · 만료일 · 기간연장 기산일 · 만료일 · 연장신청일 · 연장기간 만료일', html)
-        self.assertIn('지정 2개월 · 연장기간 1개월', html)
-        self.assertLess(html.index("앞 설명 문단"), html.index('reader-synthetic-figure'))
-        self.assertLess(html.index('reader-synthetic-figure'), html.index("2.2.5 절차에 관한 기간이 아닌"))
+        self.assertIn('src="generated/images/7f0f56d996ca.png"', html)
+        self.assertLess(html.index("앞 설명 문단"), html.index('generated/images/7f0f56d996ca.png'))
+        self.assertLess(html.index('generated/images/7f0f56d996ca.png'), html.index("2.2.5 절차에 관한 기간이 아닌"))
         self.assertEqual(
             blocks_to_text(blocks),
             "앞 설명 문단\n\n《기간 만료일이 공휴일인 경우 기간연장 기산일》\n\n7.20\n\n9.19(수)\n\n9.20(목)\n\n9.24(월)\n\n10.19(목)\n\n7.19\n\n지정 2개월\n\n연장기간 1개월\n\n연장기간 만료일\n\n통지서송달일\n\n· 만료일· 연장신청일\n\n기산일\n\n만료일\n\n기간연장 기산일\n\n2.2.5 절차에 관한 기간이 아닌 상표권의 존속기간 등은 기간의 말일이 공휴일이라도 그 다음 날까지 연장되지 아니한다.",
