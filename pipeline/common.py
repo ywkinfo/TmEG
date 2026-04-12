@@ -29,6 +29,10 @@ EFFECTIVE_DATE_NOTE_RE = re.compile(r"^\[시행일:\s*20\d{2}\.\s*\d{1,2}\.\s*\d
 PAGE_EDGE_SLASH_HEADING_RE = re.compile(r"^\d+\s*/\s*[^/]+(?:\s*/\s*[^/]+){0,3}$")
 CHAPTER_LABEL_RE = re.compile(r"^제\s*\d+\s*(?:부|장|절)\b")
 NUMBERED_HEADING_RE = re.compile(r"^(?:\d+(?:\.\d+)*\.?\s+|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳]\s+)")
+FORCED_LEGAL_ITEM_START_RE = re.compile(
+    r"^(?:[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳](?:\s+|(?=[가-힣A-Za-z]))|\d{1,2}\.\s+|\d{1,2}(?:의\d{1,2})+\.\s+|\d{1,2}(?:\.\d{1,2}){1,2}\s+)"
+)
+INDENTED_KOREAN_LEGAL_ITEM_START_RE = re.compile(r"^\s+[가나다라마바사아자차카타파하]\.\s+")
 BRACKET_LABEL_RE = re.compile(r"^[【《].+[】》]$")
 HANGING_INDENT_SUBHEADING_START_RE = re.compile(
     r"^(?:[가나다라마바사아자차카타파하]\.\s+|\([ⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹivxlcdmIVXLCDM]+\)\s*)"
@@ -365,6 +369,12 @@ def _looks_like_short_heading(text: str, bbox: Any = None) -> bool:
     )
 
 
+def _starts_forced_legal_paragraph_item(text: str, raw_text: str | None = None) -> bool:
+    if FORCED_LEGAL_ITEM_START_RE.match(normalize_line(text)):
+        return True
+    return bool(raw_text) and bool(INDENTED_KOREAN_LEGAL_ITEM_START_RE.match(raw_text))
+
+
 def _ends_sentence(text: str) -> bool:
     return normalize_line(text).endswith((".", "!", "?", "…", ":", "】", "》"))
 
@@ -436,6 +446,8 @@ def _can_merge_lines_without_geometry(previous: dict[str, Any], current: dict[st
         return False
     if _starts_with_large_indent_paragraph_start(current["text"]):
         return False
+    if _starts_forced_legal_paragraph_item(current["text"], current.get("raw_text")):
+        return False
     if _looks_like_short_heading(previous["text"]):
         return False
     if _looks_like_short_heading(current["text"]):
@@ -465,6 +477,7 @@ def _reflow_text_block_without_geometry(block: dict[str, Any]) -> tuple[str, str
 
         separator = "\n\n" if (
             _starts_with_large_indent_paragraph_start(entry["text"])
+            or _starts_forced_legal_paragraph_item(entry["text"], entry.get("raw_text"))
             or _looks_like_short_heading(entry["text"])
             or _starts_hanging_indent_excluded_text(entry["text"])
         ) else "\n"
@@ -497,6 +510,8 @@ def _can_merge_lines(previous: dict[str, Any], current: dict[str, Any]) -> bool:
         line_gap=line_gap,
         left_delta=left_delta,
     ):
+        return False
+    if _starts_forced_legal_paragraph_item(current["text"], current.get("raw_text")):
         return False
     if _looks_like_short_heading(previous["text"], previous_bbox):
         return False

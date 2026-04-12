@@ -465,6 +465,203 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertIn("심사를 하여야 하며", text)
         self.assertIn("형식적 심사를 지양하고", text)
 
+    def test_blocks_to_text_keeps_wide_circled_digit_item_separate_from_previous_numeric_item(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 35,
+                "_pageCode": "10301",
+                "bbox": (78.54, 516.43, 343.22, 528.52),
+                "lines": [
+                    {
+                        "bbox": (78.54, 516.43, 343.22, 528.52),
+                        "spans": [{"text": "6. 대리인 또는 복대리인이 그 직을 사임하려는 경우"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 35,
+                "_pageCode": "10301",
+                "bbox": (78.54, 533.84, 459.98, 545.92),
+                "lines": [
+                    {
+                        "bbox": (78.54, 533.84, 459.98, 545.92),
+                        "spans": [
+                            {
+                                "text": "④ 대리인이 「변리사법」 제6조의3에 따른 특허법인 또는 같은 법 제6조의12에 따른 특허법인(유한)의 구성원 또는 소속 변리사가 되면 다음 각 호의 어느 하나에 해당하는 행위를 할 수 있다."
+                            }
+                        ],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(
+            text,
+            "6. 대리인 또는 복대리인이 그 직을 사임하려는 경우\n\n④ 대리인이 「변리사법」 제6조의3에 따른 특허법인 또는 같은 법 제6조의12에 따른 특허법인(유한)의 구성원 또는 소속 변리사가 되면 다음 각 호의 어느 하나에 해당하는 행위를 할 수 있다.",
+        )
+
+    def test_blocks_to_text_keeps_wide_numbered_items_separate_after_circled_digit_item(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 36,
+                "_pageCode": "10301",
+                "bbox": (78.54, 111.98, 459.97, 124.06),
+                "lines": [
+                    {
+                        "bbox": (78.54, 111.98, 459.97, 124.06),
+                        "spans": [
+                            {
+                                "text": "⑤ 다음 각 호의 어느 하나에 해당하는 경우에 둘 이상의 사건에 대하여 상표에 관한 절차를 밟는 자가 같고, 대리인 또는 복대리인이 같은 경우에는 신고서를 하나만 작성하여 제출할 수 있다."
+                            }
+                        ],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 36,
+                "_pageCode": "10301",
+                "bbox": (78.54, 168.14, 436.40, 180.22),
+                "lines": [
+                    {
+                        "bbox": (78.54, 168.14, 436.40, 180.22),
+                        "spans": [{"text": "1. 상표에 관한 절차를 밟는 자가 대리인을 선임하거나 해임하려는 경우"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 36,
+                "_pageCode": "10301",
+                "bbox": (78.54, 186.86, 342.50, 198.94),
+                "lines": [
+                    {
+                        "bbox": (78.54, 186.86, 342.50, 198.94),
+                        "spans": [{"text": "2. 대리인이 복대리인을 선임하거나 해임하려는 경우"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 36,
+                "_pageCode": "10301",
+                "bbox": (78.54, 205.58, 301.40, 217.66),
+                "lines": [
+                    {
+                        "bbox": (78.54, 205.58, 301.40, 217.66),
+                        "spans": [{"text": "3. 대리인 또는 복대리인이 사임하려는 경우"}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(
+            text,
+            "⑤ 다음 각 호의 어느 하나에 해당하는 경우에 둘 이상의 사건에 대하여 상표에 관한 절차를 밟는 자가 같고, 대리인 또는 복대리인이 같은 경우에는 신고서를 하나만 작성하여 제출할 수 있다.\n\n1. 상표에 관한 절차를 밟는 자가 대리인을 선임하거나 해임하려는 경우\n\n2. 대리인이 복대리인을 선임하거나 해임하려는 경우\n\n3. 대리인 또는 복대리인이 사임하려는 경우",
+        )
+
+    def test_blocks_to_text_keeps_wide_korean_letter_items_separate(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 77,
+                "_pageCode": "20101",
+                "bbox": (76.20, 365.60, 345.50, 377.67),
+                "lines": [
+                    {
+                        "bbox": (76.20, 365.60, 345.50, 377.67),
+                        "spans": [{"text": "    가. 상품 또는 상품의 포장에 상표를 표시하는 행위"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 77,
+                "_pageCode": "20101",
+                "bbox": (76.20, 383.96, 462.26, 396.03),
+                "lines": [
+                    {
+                        "bbox": (76.20, 383.96, 462.26, 396.03),
+                        "spans": [{"text": "    나. 상품 또는 상품의 포장에 상표를 표시한 것을 양도 또는 인도하거나 양도 또는 인도할 목적으로 전시·수출 또는 수입하는 행위"}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+        html = blocks_to_html(blocks)
+
+        self.assertEqual(
+            text,
+            "가. 상품 또는 상품의 포장에 상표를 표시하는 행위\n\n나. 상품 또는 상품의 포장에 상표를 표시한 것을 양도 또는 인도하거나 양도 또는 인도할 목적으로 전시·수출 또는 수입하는 행위",
+        )
+        self.assertIn("<p>가. 상품 또는 상품의 포장에 상표를 표시하는 행위</p>\n<p>나. 상품 또는 상품의 포장에 상표를 표시한 것을 양도 또는 인도하거나 양도 또는 인도할 목적으로 전시·수출 또는 수입하는 행위</p>", html)
+
+    def test_blocks_to_text_keeps_legal_subitem_number_separate(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 127,
+                "_pageCode": "30101",
+                "bbox": (75.18, 259.82, 403.40, 271.90),
+                "lines": [
+                    {
+                        "bbox": (75.18, 259.82, 403.40, 271.90),
+                        "spans": [{"text": "1. 제55조의2에 따른 재심사를 청구하는 경우: 재심사의 청구기간"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 127,
+                "_pageCode": "30101",
+                "bbox": (75.18, 278.54, 429.44, 290.62),
+                "lines": [
+                    {
+                        "bbox": (75.18, 278.54, 429.44, 290.62),
+                        "spans": [{"text": "1의2. 제57조에 따른 출원공고의 결정이 있는 경우: 출원공고의 때까지"}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(
+            text,
+            "1. 제55조의2에 따른 재심사를 청구하는 경우: 재심사의 청구기간\n\n1의2. 제57조에 따른 출원공고의 결정이 있는 경우: 출원공고의 때까지",
+        )
+
+    def test_blocks_to_text_preserves_inline_circled_digit_enumeration_in_single_line(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 78,
+                "_pageCode": "20101",
+                "bbox": (80.22, 168.44, 478.20, 217.48),
+                "lines": [
+                    {
+                        "bbox": (80.22, 168.44, 478.16, 180.52),
+                        "spans": [{"text": "사용하는 표장(標章)을 말한다(법§2①1). 상표로 사용되는 『표장』은 크게 ①기호, 문자, 숫자, 도형, 도안, 입체적 형상, 이들의 결합 또는 이들에 색채를 결합한 것, ②단일의 색채, 색채의 조합, 홀로그램, 연속된 동작 등 시각적으로 인식할 수 있는 것, ③소리ㆍ냄새 등 시각적으로 인식할 수 없는 것으로 구분된다."}],
+                    }
+                ],
+            }
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(
+            text,
+            "사용하는 표장(標章)을 말한다(법§2①1). 상표로 사용되는 『표장』은 크게 ①기호, 문자, 숫자, 도형, 도안, 입체적 형상, 이들의 결합 또는 이들에 색채를 결합한 것, ②단일의 색채, 색채의 조합, 홀로그램, 연속된 동작 등 시각적으로 인식할 수 있는 것, ③소리ㆍ냄새 등 시각적으로 인식할 수 없는 것으로 구분된다.",
+        )
+
     def test_blocks_to_text_merges_hanging_indent_word_split_lines(self) -> None:
         blocks = [
             {
@@ -1507,6 +1704,41 @@ class ContentGuardrailsTest(unittest.TestCase):
         text = blocks_to_text(blocks)
 
         self.assertEqual(text, "제출하여야 한다.\n\n다만, 이 문장은 새 문단이다.")
+
+    def test_blocks_to_text_keeps_circled_digit_item_separate_in_block_without_geometry(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 35,
+                "_pageCode": "10301",
+                "bbox": (78.54, 516.43, 459.98, 632.92),
+                "lines": [
+                    {"spans": [{"text": "6. 대리인 또는 복대리인이 그 직을 사임하려는 경우"}]},
+                    {
+                        "spans": [
+                            {
+                                "text": "④ 대리인이 「변리사법」 제6조의3에 따른 특허법인 또는 같은 법 제6조의12에 따른 특허법인(유한)의 구성원 또는 소속 변리사가 되면 다음 각 호의 어느 하나에 해당하는 행위를 할 수 있다."
+                            }
+                        ]
+                    },
+                    {"spans": [{"text": "1. 제3항제6호에 따라 대리인 직을 사임하는 행위"}]},
+                    {
+                        "spans": [
+                            {
+                                "text": "2. 대리인이 해당 특허법인등의 구성원 또는 소속 변리사가 되기 전에 대리하던 사건에 대하여 해당 특허법인등을 복대리인으로 선임하는 행위"
+                            }
+                        ]
+                    },
+                ],
+            }
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(
+            text,
+            "6. 대리인 또는 복대리인이 그 직을 사임하려는 경우\n\n④ 대리인이 「변리사법」 제6조의3에 따른 특허법인 또는 같은 법 제6조의12에 따른 특허법인(유한)의 구성원 또는 소속 변리사가 되면 다음 각 호의 어느 하나에 해당하는 행위를 할 수 있다.\n\n1. 제3항제6호에 따라 대리인 직을 사임하는 행위\n\n2. 대리인이 해당 특허법인등의 구성원 또는 소속 변리사가 되기 전에 대리하던 사건에 대하여 해당 특허법인등을 복대리인으로 선임하는 행위",
+        )
 
     def test_build_next_chapter_start_map_tracks_following_chapter_boundaries(self) -> None:
         chapters = [
