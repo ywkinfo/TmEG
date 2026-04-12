@@ -30,6 +30,14 @@ PAGE_EDGE_SLASH_HEADING_RE = re.compile(r"^\d+\s*/\s*[^/]+(?:\s*/\s*[^/]+){0,3}$
 CHAPTER_LABEL_RE = re.compile(r"^제\s*\d+\s*(?:부|장|절)\b")
 NUMBERED_HEADING_RE = re.compile(r"^(?:\d+(?:\.\d+)*\.?\s+|[①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳]\s+)")
 BRACKET_LABEL_RE = re.compile(r"^[【《].+[】》]$")
+HANGING_INDENT_SUBHEADING_START_RE = re.compile(
+    r"^(?:[가나다라마바사아자차카타파하]\.\s+|\([ⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹivxlcdmIVXLCDM]+\)\s*)"
+)
+HANGING_INDENT_BULLET_START_RE = re.compile(r"^(?:[-•▪※]\s+)")
+HANGING_INDENT_WORD_FRAGMENT_RE = re.compile(r"^[가-힣]{2,}|^[가-힣][가-힣][^\s]*")
+LARGE_INDENT_PARAGRAPH_START_RE = re.compile(
+    r"^(?:다만|또한|그리고|그러나|한편|이 경우|다음(?:은|과|의)?|따라서|즉|예를 들어)"
+)
 GENERIC_LABELS = {
     "관련 법령",
     "관련 법령 및 취지",
@@ -241,6 +249,14 @@ def _bbox_value(bbox: Any, index: int) -> float | None:
     return None
 
 
+def _bbox_width(bbox: Any) -> float | None:
+    left = _bbox_value(bbox, 0)
+    right = _bbox_value(bbox, 2)
+    if left is None or right is None:
+        return None
+    return right - left
+
+
 def _block_sort_key(indexed_block: tuple[int, dict[str, Any]]) -> tuple[float, float, int]:
     index, block = indexed_block
     bbox = block.get("bbox")
@@ -306,6 +322,73 @@ def _ends_sentence(text: str) -> bool:
     return normalize_line(text).endswith((".", "!", "?", "…", ":", "】", "》"))
 
 
+def _ends_with_hangul_syllable(text: str) -> bool:
+    normalized = normalize_line(text)
+    return bool(normalized) and bool(re.search(r"[가-힣]$", normalized))
+
+
+def _starts_with_hangul_word_fragment(text: str) -> bool:
+    return bool(HANGING_INDENT_WORD_FRAGMENT_RE.match(normalize_line(text)))
+
+
+def _starts_with_large_indent_paragraph_start(text: str) -> bool:
+    return bool(LARGE_INDENT_PARAGRAPH_START_RE.match(normalize_line(text)))
+
+
+def _looks_like_hanging_indent_subheading(text: str, bbox: Any = None) -> bool:
+    normalized = normalize_line(text)
+    if not HANGING_INDENT_SUBHEADING_START_RE.match(normalized):
+        return False
+
+    width = _bbox_width(bbox)
+    return len(normalized) <= 80 and (width is None or width <= 260.0)
+
+
+def _allows_hanging_indent_merge(
+    previous: dict[str, Any],
+    current: dict[str, Any],
+    *,
+    line_gap: float,
+    left_delta: float,
+) -> bool:
+    if not 0.0 <= line_gap <= 10.0:
+        return False
+
+    previous_width = _bbox_width(previous.get("bbox"))
+    if previous_width is None or previous_width < 260.0:
+        return False
+
+    current_text = current.get("text", "")
+    if _starts_with_large_indent_paragraph_start(current_text):
+        return False
+
+    if 24.0 < left_delta <= 56.0:
+        return True
+
+    current_width = _bbox_width(current.get("bbox"))
+    if current_width is None:
+        return False
+
+    return bool(
+        56.0 < left_delta <= 120.0
+        and current_width <= 220.0
+        and _ends_with_hangul_syllable(previous.get("text", ""))
+        and _starts_with_hangul_word_fragment(current_text)
+    )
+
+
+def _starts_hanging_indent_excluded_text(text: str, bbox: Any = None) -> bool:
+    normalized = normalize_line(text)
+    return bool(HANGING_INDENT_BULLET_START_RE.match(normalized)) or _looks_like_hanging_indent_subheading(
+        normalized,
+        bbox,
+    )
+
+
+def _normalize_common_broken_legal_spacing(text: str) -> str:
+    return re.sub(r"([가-힣])에의 하여", r"\1에 의하여", text)
+
+
 def _can_merge_lines(previous: dict[str, Any], current: dict[str, Any]) -> bool:
     previous_bbox = previous.get("bbox")
     current_bbox = current.get("bbox")
@@ -317,13 +400,23 @@ def _can_merge_lines(previous: dict[str, Any], current: dict[str, Any]) -> bool:
     if previous_bottom is None or current_top is None or previous_left is None or current_left is None:
         return False
 
-    if current_top - previous_bottom > 10.0:
+    line_gap = current_top - previous_bottom
+    left_delta = current_left - previous_left
+
+    if line_gap > 10.0:
         return False
-    if abs(current_left - previous_left) > 24.0:
+    if abs(left_delta) > 24.0 and not _allows_hanging_indent_merge(
+        previous,
+        current,
+        line_gap=line_gap,
+        left_delta=left_delta,
+    ):
         return False
     if _looks_like_short_heading(previous["text"], previous_bbox):
         return False
     if _looks_like_short_heading(current["text"], current_bbox):
+        return False
+    if _starts_hanging_indent_excluded_text(current["text"], current_bbox):
         return False
     if _ends_sentence(previous["text"]):
         return False
@@ -344,6 +437,7 @@ def _flush_paragraph(paragraph_lines: list[dict[str, Any]], normalized_blocks: l
     for line in paragraph_lines[1:]:
         merged_text = _join_line_text({**previous_line, "text": merged_text}, line)
         previous_line = line
+    merged_text = _normalize_common_broken_legal_spacing(merged_text)
 
     normalized_blocks.append(
         {

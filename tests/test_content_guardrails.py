@@ -465,6 +465,413 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertIn("심사를 하여야 하며", text)
         self.assertIn("형식적 심사를 지양하고", text)
 
+    def test_blocks_to_text_merges_hanging_indent_word_split_lines(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 27,
+                "_pageCode": "10201",
+                "bbox": (78.54, 612.26, 459.97, 624.34),
+                "lines": [
+                    {
+                        "bbox": (78.54, 612.26, 459.97, 624.34),
+                        "spans": [
+                            {
+                                "text": "1. 그 외국인이 속하는 국가에서 대한민국 국민에 대하여 그 국민과 같은 조"
+                            }
+                        ],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 27,
+                "_pageCode": "10201",
+                "bbox": (105.48, 629.84, 369.98, 641.92),
+                "lines": [
+                    {
+                        "bbox": (105.48, 629.84, 369.98, 641.92),
+                        "spans": [{"text": "건으로 상표권 또는 상표에 관한 권리를 인정하는 경우"}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(
+            text,
+            "1. 그 외국인이 속하는 국가에서 대한민국 국민에 대하여 그 국민과 같은 조건으로 상표권 또는 상표에 관한 권리를 인정하는 경우",
+        )
+
+    def test_blocks_to_text_merges_hanging_indent_body_continuation(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 44,
+                "_pageCode": "10407",
+                "bbox": (63.78, 100.00, 444.26, 112.08),
+                "lines": [
+                    {
+                        "bbox": (63.78, 100.00, 444.26, 112.08),
+                        "spans": [
+                            {
+                                "text": "3. 상표등록출원인의 성명과 주소(법인인 경우에는 그 명칭과 영업소의 소"
+                            }
+                        ],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 44,
+                "_pageCode": "10407",
+                "bbox": (90.96, 118.12, 126.96, 130.20),
+                "lines": [
+                    {
+                        "bbox": (90.96, 118.12, 126.96, 130.20),
+                        "spans": [{"text": "재지)"}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(
+            text,
+            "3. 상표등록출원인의 성명과 주소(법인인 경우에는 그 명칭과 영업소의 소재지)",
+        )
+
+    def test_blocks_to_text_merges_wider_hanging_indent_continuation(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 37,
+                "_pageCode": "10304",
+                "bbox": (63.78, 524.90, 474.78, 536.98),
+                "lines": [
+                    {
+                        "bbox": (63.78, 524.90, 474.78, 536.98),
+                        "spans": [{"text": "(ⅰ) 『친권자』란 미성년자에 대하여 친권을 행사하는 부 또는 모를 말하며, 미성"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 37,
+                "_pageCode": "10304",
+                "bbox": (113.64, 543.62, 313.57, 555.70),
+                "lines": [
+                    {
+                        "bbox": (113.64, 543.62, 313.57, 555.70),
+                        "spans": [{"text": "년자의 법정대리인이 된다(민법 제911조)."}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(text, "(ⅰ) 『친권자』란 미성년자에 대하여 친권을 행사하는 부 또는 모를 말하며, 미성년자의 법정대리인이 된다(민법 제911조).")
+
+    def test_blocks_to_text_merges_sentence_continuation_starting_with_da(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 533,
+                "_pageCode": "100101",
+                "bbox": (80.22, 216.56, 474.75, 228.64),
+                "lines": [
+                    {
+                        "bbox": (80.22, 216.56, 474.75, 228.64),
+                        "spans": [{"text": "심사관이나 지식재산처장이 직권으로 이를 취소하거나 변경하지 못하도록 하고 있"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 533,
+                "_pageCode": "100101",
+                "bbox": (80.22, 236.36, 474.74, 248.44),
+                "lines": [
+                    {
+                        "bbox": (80.22, 236.36, 474.74, 248.44),
+                        "spans": [{"text": "다. 다만, 절차상 중대하고 명백한 하자가 있는 결정처분은 법률상 효력이 없는 처"}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(
+            text,
+            "심사관이나 지식재산처장이 직권으로 이를 취소하거나 변경하지 못하도록 하고 있다. 다만, 절차상 중대하고 명백한 하자가 있는 결정처분은 법률상 효력이 없는 처",
+        )
+
+    def test_blocks_to_text_merges_large_indent_word_fragment_continuation(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 533,
+                "_pageCode": "100101",
+                "bbox": (64.80, 550.34, 473.71, 562.42),
+                "lines": [
+                    {
+                        "bbox": (64.80, 550.34, 473.71, 562.42),
+                        "spans": [{"text": "(해당 예시) 행위능력이 없는 자가 직접 출원한 상표등록출원에 대하여 등"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 533,
+                "_pageCode": "100101",
+                "bbox": (174.24, 570.14, 257.18, 582.22),
+                "lines": [
+                    {
+                        "bbox": (174.24, 570.14, 257.18, 582.22),
+                        "spans": [{"text": "록결정을 한 경우"}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(text, "(해당 예시) 행위능력이 없는 자가 직접 출원한 상표등록출원에 대하여 등록결정을 한 경우")
+
+    def test_blocks_to_text_normalizes_broken_eui_hayeo_spacing(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 525,
+                "_pageCode": "90801",
+                "bbox": (76.20, 221.60, 463.35, 233.68),
+                "lines": [
+                    {
+                        "bbox": (76.20, 221.60, 463.35, 233.68),
+                        "spans": [{"text": "(1) 국제사무국에서의 표장의 등록은 10년간 유효하고, 제7조에서 명시하는 요"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 525,
+                "_pageCode": "90801",
+                "bbox": (96.06, 239.72, 250.26, 251.80),
+                "lines": [
+                    {
+                        "bbox": (96.06, 239.72, 250.26, 251.80),
+                        "spans": [{"text": "건에의 하여 갱신을 할 수 있다."}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(
+            text,
+            "(1) 국제사무국에서의 표장의 등록은 10년간 유효하고, 제7조에서 명시하는 요건에 의하여 갱신을 할 수 있다.",
+        )
+
+    def test_blocks_to_text_merges_hanging_indent_with_larger_line_gap(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 151,
+                "_pageCode": "30405",
+                "bbox": (63.78, 211.88, 474.73, 223.96),
+                "lines": [
+                    {
+                        "bbox": (63.78, 211.88, 474.73, 223.96),
+                        "spans": [{"text": "5.1.1 담당심사관은 분할신청에 대한 적부를 판단하여 하자가 있는 경우 국제상표등"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 151,
+                "_pageCode": "30405",
+                "bbox": (95.52, 232.82, 474.75, 244.90),
+                "lines": [
+                    {
+                        "bbox": (95.52, 232.82, 474.75, 244.90),
+                        "spans": [{"text": "록출원인(이하 “출원인”이라 한다)에게 2개월의 보정기간을 정하여 ‘국제상표분"}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(
+            text,
+            "5.1.1 담당심사관은 분할신청에 대한 적부를 판단하여 하자가 있는 경우 국제상표등록출원인(이하 “출원인”이라 한다)에게 2개월의 보정기간을 정하여 ‘국제상표분",
+        )
+
+    def test_blocks_to_text_keeps_large_indent_paragraph_starter_separate(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 200,
+                "_pageCode": "99901",
+                "bbox": (63.78, 100.00, 474.78, 112.08),
+                "lines": [
+                    {
+                        "bbox": (63.78, 100.00, 474.78, 112.08),
+                        "spans": [{"text": "선행 문단의 마지막 줄이 아직 끝나지 않은 것처럼 보여도"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 200,
+                "_pageCode": "99901",
+                "bbox": (160.00, 119.20, 300.00, 131.28),
+                "lines": [
+                    {
+                        "bbox": (160.00, 119.20, 300.00, 131.28),
+                        "spans": [{"text": "다만, 이 문장은 새 문단이다."}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(text, "선행 문단의 마지막 줄이 아직 끝나지 않은 것처럼 보여도\n\n다만, 이 문장은 새 문단이다.")
+
+    def test_blocks_to_text_keeps_medium_indent_paragraph_starter_separate(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 200,
+                "_pageCode": "99901",
+                "bbox": (63.78, 100.00, 474.78, 112.08),
+                "lines": [
+                    {
+                        "bbox": (63.78, 100.00, 474.78, 112.08),
+                        "spans": [{"text": "선행 문단의 마지막 줄이 아직 끝나지 않은 것처럼 보여도"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 200,
+                "_pageCode": "99901",
+                "bbox": (103.78, 119.20, 300.00, 131.28),
+                "lines": [
+                    {
+                        "bbox": (103.78, 119.20, 300.00, 131.28),
+                        "spans": [{"text": "다만, 이 문장은 새 문단이다."}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(text, "선행 문단의 마지막 줄이 아직 끝나지 않은 것처럼 보여도\n\n다만, 이 문장은 새 문단이다.")
+
+    def test_blocks_to_text_keeps_large_indent_bullet_line_separate(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 200,
+                "_pageCode": "99901",
+                "bbox": (63.78, 100.00, 474.78, 112.08),
+                "lines": [
+                    {
+                        "bbox": (63.78, 100.00, 474.78, 112.08),
+                        "spans": [{"text": "앞 문장은 참고자료를 충분히 증명하는"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 200,
+                "_pageCode": "99901",
+                "bbox": (160.00, 119.20, 280.00, 131.28),
+                "lines": [
+                    {
+                        "bbox": (160.00, 119.20, 280.00, 131.28),
+                        "spans": [{"text": "※ 추가 서류"}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(text, "앞 문장은 참고자료를 충분히 증명하는\n\n※ 추가 서류")
+
+    def test_blocks_to_text_keeps_indented_korean_letter_heading_as_new_paragraph(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 44,
+                "_pageCode": "10407",
+                "bbox": (63.78, 100.00, 444.26, 112.08),
+                "lines": [
+                    {
+                        "bbox": (63.78, 100.00, 444.26, 112.08),
+                        "spans": [{"text": "이 문단은 아직 끝나지 않은 것처럼 보여도 다음 제목과는 합쳐지면 안 된다"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 44,
+                "_pageCode": "10407",
+                "bbox": (113.78, 118.08, 203.78, 130.16),
+                "lines": [
+                    {
+                        "bbox": (113.78, 118.08, 203.78, 130.16),
+                        "spans": [{"text": "가. 다음 요건"}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(text, "이 문단은 아직 끝나지 않은 것처럼 보여도 다음 제목과는 합쳐지면 안 된다\n\n가. 다음 요건")
+
+    def test_blocks_to_text_keeps_short_label_rows_separate(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 45,
+                "_pageCode": "10408",
+                "bbox": (63.78, 100.00, 183.78, 112.08),
+                "lines": [
+                    {
+                        "bbox": (63.78, 100.00, 183.78, 112.08),
+                        "spans": [{"text": "지정기간 2개월"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 45,
+                "_pageCode": "10408",
+                "bbox": (91.78, 118.08, 181.78, 130.16),
+                "lines": [
+                    {
+                        "bbox": (91.78, 118.08, 181.78, 130.16),
+                        "spans": [{"text": "통지서송달일"}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(text, "지정기간 2개월\n\n통지서송달일")
+
     def test_blocks_to_text_strips_interior_page_codes_and_update_markers(self) -> None:
         blocks = [
             {
