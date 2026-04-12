@@ -575,6 +575,41 @@ class ContentGuardrailsTest(unittest.TestCase):
 
         self.assertEqual(text, "(ⅰ) 『친권자』란 미성년자에 대하여 친권을 행사하는 부 또는 모를 말하며, 미성년자의 법정대리인이 된다(민법 제911조).")
 
+    def test_blocks_to_text_merges_wide_hanging_indent_note_continuation(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 209,
+                "_pageCode": "40903",
+                "bbox": (63.77, 483.25, 474.74, 495.33),
+                "lines": [
+                    {
+                        "bbox": (63.77, 483.25, 474.74, 495.33),
+                        "spans": [{"text": "      (참고) 사용에 의한 식별력은 원래 식별력이 없는 표장에 대세적인 권리를 부"}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 209,
+                "_pageCode": "40903",
+                "bbox": (130.38, 501.31, 478.24, 513.39),
+                "lines": [
+                    {
+                        "bbox": (130.38, 501.31, 478.24, 513.39),
+                        "spans": [{"text": "여하는 것이므로 과거에는 그 기준을 엄격하게 해석·적용하여야 한다고 "}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(
+            text,
+            "(참고) 사용에 의한 식별력은 원래 식별력이 없는 표장에 대세적인 권리를 부여하는 것이므로 과거에는 그 기준을 엄격하게 해석·적용하여야 한다고",
+        )
+
     def test_blocks_to_text_merges_sentence_continuation_starting_with_da(self) -> None:
         blocks = [
             {
@@ -1231,6 +1266,247 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertIn("우려가 없다는 점이 인정될 경우 등록이 가능합니다.", text)
         self.assertIn("1.6 외국인의 권리능력", text)
         self.assertNotIn("2.1 무능력자의 행위능력", text)
+
+    def test_blocks_to_text_merges_cross_page_continuation_after_header_stripping(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 29,
+                "_pageCode": "10202",
+                "bbox": (73.31, 619.69, 471.58, 631.77),
+                "lines": [
+                    {
+                        "bbox": (73.31, 619.69, 471.58, 631.77),
+                        "spans": [{"text": "※ 다만, ㅇㅇ협회가 비법인단체로서 권리능력이 없어 상표등록을 받을 수 없는 경우라면 "}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 29,
+                "_pageCode": "10202",
+                "bbox": (89.93, 638.31, 471.61, 650.49),
+                "lines": [
+                    {
+                        "bbox": (89.93, 638.31, 471.61, 650.49),
+                        "spans": [{"text": "➀ 비법인단체라는 점과 ➁ 출원인이 등록받더라도 비법인단체와 출처의 오인·혼동의 "}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 30,
+                "_pageCode": "10203",
+                "bbox": (65.76, 60.02, 118.80, 70.01),
+                "lines": [{"bbox": (65.76, 60.02, 118.80, 70.01), "spans": [{"text": "제1부  총 칙"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 30,
+                "_pageCode": "10203",
+                "bbox": (89.93, 116.14, 468.34, 128.31),
+                "lines": [
+                    {
+                        "bbox": (89.93, 116.14, 468.34, 128.31),
+                        "spans": [{"text": "우려가 없다는 점이 인정될 경우 등록이 가능합니다. 가령, ➀은 소득세법에 따른 ‘고"}],
+                    }
+                ],
+            },
+        ]
+
+        text = blocks_to_text(blocks, part_title="제1부 총 칙", chapter_title="제2장 권리능력 및 행위능력")
+
+        self.assertIn("오인·혼동의 우려가 없다는 점이 인정될 경우", text)
+        self.assertNotIn("오인·혼동의\n\n우려가", text)
+
+    def test_blocks_to_text_keeps_cross_page_numbered_heading_separate(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 29,
+                "_pageCode": "10202",
+                "bbox": (89.93, 638.31, 471.61, 650.49),
+                "lines": [
+                    {
+                        "bbox": (89.93, 638.31, 471.61, 650.49),
+                        "spans": [{"text": "우려가 없다는 점이 인정될 경우 등록이 가능합니다."}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 30,
+                "_pageCode": "10203",
+                "bbox": (65.76, 60.02, 118.80, 70.01),
+                "lines": [{"bbox": (65.76, 60.02, 118.80, 70.01), "spans": [{"text": "제1부  총 칙"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 30,
+                "_pageCode": "10203",
+                "bbox": (63.77, 217.03, 167.23, 229.11),
+                "lines": [{"bbox": (63.77, 217.03, 167.23, 229.11), "spans": [{"text": "1.6 외국인의 권리능력"}]}],
+            },
+        ]
+
+        text = blocks_to_text(blocks, part_title="제1부 총 칙", chapter_title="제2장 권리능력 및 행위능력")
+
+        self.assertEqual(text, "우려가 없다는 점이 인정될 경우 등록이 가능합니다.\n\n1.6 외국인의 권리능력")
+
+    def test_blocks_to_text_keeps_cross_page_bullet_separate(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 29,
+                "_pageCode": "10202",
+                "bbox": (89.93, 638.31, 471.61, 650.49),
+                "lines": [
+                    {
+                        "bbox": (89.93, 638.31, 471.61, 650.49),
+                        "spans": [{"text": "우려가 없다는 점이 인정될 경우 등록이 가능합니다."}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 30,
+                "_pageCode": "10203",
+                "bbox": (65.76, 60.02, 118.80, 70.01),
+                "lines": [{"bbox": (65.76, 60.02, 118.80, 70.01), "spans": [{"text": "제1부  총 칙"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 30,
+                "_pageCode": "10203",
+                "bbox": (89.93, 116.14, 280.00, 128.31),
+                "lines": [{"bbox": (89.93, 116.14, 280.00, 128.31), "spans": [{"text": "※ 추가 증빙자료를 제출한다."}]}],
+            },
+        ]
+
+        text = blocks_to_text(blocks, part_title="제1부 총 칙", chapter_title="제2장 권리능력 및 행위능력")
+
+        self.assertEqual(text, "우려가 없다는 점이 인정될 경우 등록이 가능합니다.\n\n※ 추가 증빙자료를 제출한다.")
+
+    def test_blocks_to_text_keeps_cross_page_short_label_separate(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 29,
+                "_pageCode": "10202",
+                "bbox": (89.93, 638.31, 471.61, 650.49),
+                "lines": [
+                    {
+                        "bbox": (89.93, 638.31, 471.61, 650.49),
+                        "spans": [{"text": "우려가 없다는 점이 인정될 경우 등록이 가능합니다."}],
+                    }
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 30,
+                "_pageCode": "10203",
+                "bbox": (65.76, 60.02, 118.80, 70.01),
+                "lines": [{"bbox": (65.76, 60.02, 118.80, 70.01), "spans": [{"text": "제1부  총 칙"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 30,
+                "_pageCode": "10203",
+                "bbox": (89.93, 116.14, 180.00, 128.31),
+                "lines": [{"bbox": (89.93, 116.14, 180.00, 128.31), "spans": [{"text": "통지서송달일"}]}],
+            },
+        ]
+
+        text = blocks_to_text(blocks, part_title="제1부 총 칙", chapter_title="제2장 권리능력 및 행위능력")
+
+        self.assertEqual(text, "우려가 없다는 점이 인정될 경우 등록이 가능합니다.\n\n통지서송달일")
+
+    def test_blocks_to_text_reflows_block_without_line_geometry(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 395,
+                "_pageCode": "60501",
+                "bbox": (89.75, 304.45, 465.53, 316.53),
+                "lines": [
+                    {"spans": [{"text": "항을 "}]},
+                    {"spans": [{"text": "적은 "}]},
+                    {"spans": [{"text": "지정상품의 "}]},
+                    {"spans": [{"text": "추가등록출원서를 "}]},
+                    {"spans": [{"text": "지식재산처장에게 "}]},
+                    {"spans": [{"text": "제출하여야 "}]},
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 395,
+                "_pageCode": "60501",
+                "bbox": (89.75, 322.57, 113.76, 334.65),
+                "lines": [{"bbox": (89.75, 322.57, 113.76, 334.65), "spans": [{"text": "한다."}]}],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(text, "항을 적은 지정상품의 추가등록출원서를 지식재산처장에게 제출하여야 한다.")
+
+    def test_blocks_to_text_keeps_list_rows_separate_in_block_without_line_geometry(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 395,
+                "_pageCode": "60501",
+                "bbox": (89.75, 304.45, 465.53, 316.53),
+                "lines": [
+                    {"spans": [{"text": "항을 "}]},
+                    {"spans": [{"text": "적은 "}]},
+                    {"spans": [{"text": "지정상품의 "}]},
+                    {"spans": [{"text": "추가등록출원서를 "}]},
+                    {"spans": [{"text": "지식재산처장에게 "}]},
+                    {"spans": [{"text": "제출하여야 "}]},
+                ],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 395,
+                "_pageCode": "60501",
+                "bbox": (89.75, 322.57, 113.76, 334.65),
+                "lines": [{"bbox": (89.75, 322.57, 113.76, 334.65), "spans": [{"text": "한다."}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 395,
+                "_pageCode": "60501",
+                "bbox": (78.77, 340.75, 340.08, 352.83),
+                "lines": [{"spans": [{"text": "1. 제36조제1항제1호·제2호·제5호 및 제6호의 사항"}]}],
+            },
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(
+            text,
+            "항을 적은 지정상품의 추가등록출원서를 지식재산처장에게 제출하여야 한다.\n\n1. 제36조제1항제1호·제2호·제5호 및 제6호의 사항",
+        )
+
+    def test_blocks_to_text_keeps_paragraph_starter_separate_in_block_without_geometry(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 395,
+                "_pageCode": "60501",
+                "bbox": (89.75, 304.45, 465.53, 316.53),
+                "lines": [
+                    {"spans": [{"text": "제출하여야 "}]},
+                    {"spans": [{"text": "한다."}]},
+                    {"spans": [{"text": "다만, 이 문장은 새 문단이다."}]},
+                ],
+            }
+        ]
+
+        text = blocks_to_text(blocks)
+
+        self.assertEqual(text, "제출하여야 한다.\n\n다만, 이 문장은 새 문단이다.")
 
     def test_build_next_chapter_start_map_tracks_following_chapter_boundaries(self) -> None:
         chapters = [
