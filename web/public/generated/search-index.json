@@ -768,8 +768,8 @@
     "pageCode": "20403",
     "pageStart": 97,
     "pageEnd": 100,
-    "hasImage": false,
-    "imageCount": 0,
+    "hasImage": true,
+    "imageCount": 1,
     "categories": [
       "procedure"
     ]
