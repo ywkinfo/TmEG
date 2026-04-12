@@ -15,9 +15,11 @@ build_next_chapter_start_map = build_content.build_next_chapter_start_map
 build_next_part_map = build_content.build_next_part_map
 cap_entry_end_page = build_content.cap_entry_end_page
 extend_end_page_for_next_sibling = build_content.extend_end_page_for_next_sibling
+extend_overview_end_page_for_leading_content = build_content.extend_overview_end_page_for_leading_content
 find_appendix_boundary_page = build_content.find_appendix_boundary_page
 find_next_part_boundary_page = build_content.find_next_part_boundary_page
 is_appendix_boundary_page = build_content.is_appendix_boundary_page
+page_has_meaningful_leading_content_before_title = build_content.page_has_meaningful_leading_content_before_title
 resolve_supplement_start = build_content.resolve_supplement_start
 join_page_range = build_content.join_page_range
 slice_entry_blocks = build_content.slice_entry_blocks
@@ -1769,6 +1771,87 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertIn("우려가 없다는 점이 인정될 경우 등록이 가능합니다.", text)
         self.assertIn("1.6 외국인의 권리능력", text)
         self.assertNotIn("2.1 무능력자의 행위능력", text)
+
+    def test_page_has_meaningful_leading_content_before_title_detects_pre_heading_spillover(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageCode": "10305",
+                "_pageNumber": 37,
+                "bbox": (420, 60, 470, 80),
+                "lines": [{"spans": [{"text": "제3장 대리인"}]}],
+            },
+            {
+                "type": 0,
+                "_pageCode": "10305",
+                "_pageNumber": 37,
+                "bbox": (80, 120, 420, 140),
+                "lines": [{"spans": [{"text": "제4조(포괄위임 원용의 제한)"}]}],
+            },
+            {
+                "type": 0,
+                "_pageCode": "10305",
+                "_pageNumber": 37,
+                "bbox": (64, 430, 160, 450),
+                "lines": [{"spans": [{"text": "1. 대리인의 구분"}]}],
+            },
+        ]
+
+        self.assertTrue(
+            page_has_meaningful_leading_content_before_title(
+                blocks,
+                "1. 대리인의 구분",
+                part_title="제1부 총 칙",
+                chapter_title="제3장 대리인",
+            )
+        )
+
+    def test_extend_overview_end_page_for_leading_content_includes_first_child_page(self) -> None:
+        overview_entry = {
+            "entryType": "overview",
+            "pageEnd": 36,
+            "partTitle": "제1부 총 칙",
+            "chapterTitle": "제3장 대리인",
+        }
+        following_entry = {
+            "sectionTitle": "1. 대리인의 구분",
+            "pageStart": 37,
+        }
+        page_blocks = {
+            37: [
+                {
+                    "type": 0,
+                    "_pageCode": "10305",
+                    "_pageNumber": 37,
+                    "bbox": (420, 60, 470, 80),
+                    "lines": [{"spans": [{"text": "제3장 대리인"}]}],
+                },
+                {
+                    "type": 0,
+                    "_pageCode": "10305",
+                    "_pageNumber": 37,
+                    "bbox": (80, 120, 420, 140),
+                    "lines": [{"spans": [{"text": "제4조(포괄위임 원용의 제한)"}]}],
+                },
+                {
+                    "type": 0,
+                    "_pageCode": "10305",
+                    "_pageNumber": 37,
+                    "bbox": (64, 430, 160, 450),
+                    "lines": [{"spans": [{"text": "1. 대리인의 구분"}]}],
+                },
+            ]
+        }
+
+        self.assertEqual(
+            extend_overview_end_page_for_leading_content(
+                overview_entry,
+                following_entry,
+                36,
+                page_blocks,
+            ),
+            37,
+        )
 
     def test_blocks_to_text_merges_cross_page_continuation_after_header_stripping(self) -> None:
         blocks = [

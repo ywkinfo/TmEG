@@ -668,6 +668,71 @@ def extend_end_page_for_next_sibling(
     return following_start_page
 
 
+def page_has_meaningful_leading_content_before_title(
+    blocks: list[dict[str, Any]],
+    title: str,
+    *,
+    part_title: str = "",
+    chapter_title: str = "",
+) -> bool:
+    if not blocks:
+        return False
+
+    ordered_blocks = sort_blocks_in_reading_order(blocks)
+    title_index = find_title_block_index(ordered_blocks, title)
+    if title_index is None:
+        title_index = find_numbered_subheading_index(ordered_blocks, title)
+    if title_index is None or title_index <= 0:
+        return False
+
+    normalized_part_title = clean_title(part_title)
+    normalized_chapter_title = clean_title(chapter_title)
+    for block in ordered_blocks[:title_index]:
+        if block.get("type") != 0:
+            return True
+        text = text_block_to_text(block)
+        normalized = clean_title(text)
+        if not normalized:
+            continue
+        if re.fullmatch(r"\d{5,6}", normalized):
+            continue
+        if normalized in {normalized_part_title, normalized_chapter_title}:
+            continue
+        if not strip_running_header_lines([text], page_code=block.get("_pageCode")):
+            continue
+        return True
+    return False
+
+
+def extend_overview_end_page_for_leading_content(
+    entry: dict[str, Any],
+    following_entry: dict[str, Any] | None,
+    structural_end_page: int | None,
+    page_blocks: dict[int, list[dict[str, Any]]],
+) -> int | None:
+    if structural_end_page is None:
+        return None
+    if entry["entryType"] != "overview" or following_entry is None:
+        return structural_end_page
+
+    nominal_end_page = entry.get("pageEnd")
+    following_start_page = following_entry.get("pageStart")
+    if nominal_end_page is None or following_start_page is None:
+        return structural_end_page
+    if structural_end_page != nominal_end_page:
+        return structural_end_page
+    if following_start_page <= structural_end_page:
+        return structural_end_page
+    if not page_has_meaningful_leading_content_before_title(
+        page_blocks.get(following_start_page, []),
+        following_entry["sectionTitle"],
+        part_title=entry.get("partTitle", ""),
+        chapter_title=entry.get("chapterTitle", ""),
+    ):
+        return structural_end_page
+    return following_start_page
+
+
 def main() -> None:
     config = load_config()
     inventory = load_generated_json("pdf-inventory.json")
@@ -812,6 +877,12 @@ def main() -> None:
                 entry,
                 following_entry,
                 effective_end_page,
+            )
+            effective_end_page = extend_overview_end_page_for_leading_content(
+                entry,
+                following_entry,
+                effective_end_page,
+                page_blocks,
             )
             if entry["entryType"] == "overview" and len(chapter_entries) == 1:
                 appendix_boundary_page = find_appendix_boundary_page(
