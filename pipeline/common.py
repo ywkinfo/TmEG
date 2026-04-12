@@ -146,6 +146,23 @@ SYNTHETIC_TIMELINE_SPECS: dict[str, dict[str, Any]] = {
         "imageRelativePath": "generated/images/7f0f56d996ca.png",
     },
 }
+ALLOWLISTED_CROP_FIGURE_SPECS: dict[str, list[dict[str, Any]]] = {
+    clean_title("2. 지정상품의 심사"): [
+        {
+            "title": clean_title("《지정상품 심사 판단시점 : 출원시》"),
+            "required_blocks": [
+                "심     사2012.12.1",
+                "상 표 출 원2011.12.1",
+                "상품고시개정2012.1.1",
+                "스포츠후원 및 흥행업(S121001)",
+                "<지정상품>스포츠 및오락흥행업(S1210)",
+                "<상품인정>스포츠 및오락흥행업(S121001)(S121002)",
+                "오락흥행업(S121002)",
+            ],
+            "imageRelativePath": "generated/images/da51bb42fb7e.png",
+        }
+    ]
+}
 # HTML-only reader aids for tightly allowlisted procedure sections.
 # These rows are editorial summaries for reader comprehension, not extracted source text,
 # and they must never affect `blocks_to_text` or other search/locator paths.
@@ -1695,6 +1712,32 @@ def _render_synthetic_timeline_figure(
     return html, next_index
 
 
+def _render_allowlisted_crop_figure(
+    normalized_blocks: list[dict[str, Any]],
+    start_index: int,
+    section_title: str,
+) -> tuple[str | None, int]:
+    specs = ALLOWLISTED_CROP_FIGURE_SPECS.get(clean_title(section_title))
+    if not specs:
+        return None, start_index + 1
+
+    title_text = text_block_to_text(normalized_blocks[start_index])
+    title = clean_title(title_text)
+    for spec in specs:
+        if title != spec["title"]:
+            continue
+        required_blocks = spec["required_blocks"]
+        end_index = start_index + 1 + len(required_blocks)
+        if end_index > len(normalized_blocks):
+            continue
+        candidate_texts = [text_block_to_text(block) for block in normalized_blocks[start_index + 1 : end_index]]
+        if candidate_texts != required_blocks:
+            continue
+        return _render_timeline_crop_figure(title_text, spec["imageRelativePath"]), end_index
+
+    return None, start_index + 1
+
+
 def _render_synthetic_procedure_figure(section_title: str) -> str | None:
     rows = SYNTHETIC_PROCEDURE_SPECS.get(clean_title(section_title))
     if rows is None:
@@ -1812,6 +1855,16 @@ def blocks_to_html(
 
     index = 0
     while index < len(normalized_blocks):
+        crop_figure_html, next_index = _render_allowlisted_crop_figure(
+            normalized_blocks,
+            index,
+            section_title,
+        )
+        if crop_figure_html is not None:
+            html_blocks.append(crop_figure_html)
+            index = next_index
+            continue
+
         multi_column_table_html, next_index = _render_allowlisted_multi_column_table(
             normalized_blocks,
             index,
