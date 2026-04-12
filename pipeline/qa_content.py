@@ -16,6 +16,14 @@ def normalize_leading_text(value: str) -> str:
     return normalize_space(without_html)
 
 
+def build_manifest_image_paths(image_manifest: dict[str, Any]) -> set[str]:
+    return {
+        f"generated/{image['relativePath']}"
+        for image in image_manifest.get("images", [])
+        if image.get("relativePath")
+    }
+
+
 def looks_like_toc_text(value: str, document_title: str) -> bool:
     text = normalize_leading_text(value)
     if not text:
@@ -102,11 +110,7 @@ def main() -> None:
     coverage = load_generated_json("coverage-report.json")
     toc_pages = set(toc["meta"].get("tocPages", []))
     inventory_pages = {page["pageNumber"]: page for page in inventory["pages"]}
-    manifest_image_paths = {
-        f"public/generated/{image['relativePath']}"
-        for image in image_manifest.get("images", [])
-        if image.get("relativePath")
-    }
+    manifest_image_paths = build_manifest_image_paths(image_manifest)
     search_index_by_key = {
         (entry["id"], entry["chapterTitle"], entry["pageStart"]): entry for entry in search_index
     }

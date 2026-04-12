@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 
 from pipeline.common import load_config, load_generated_json
-from pipeline.export_notebooklm import clean_title, export_notebooklm, extract_law_refs
+from pipeline.export_notebooklm import clean_title, export_notebooklm, extract_law_refs, strip_running_header
 
 
 class NotebookLMExportTest(unittest.TestCase):
@@ -34,6 +34,45 @@ class NotebookLMExportTest(unittest.TestCase):
         self.assertIn("제36조제1항제2호", refs)
         self.assertNotIn("제9조", refs)
         self.assertNotIn("제99조", refs)
+
+    def test_strip_running_header_removes_titles_page_code_and_section_title(self) -> None:
+        text = "\n".join(
+            [
+                "제1부 총 칙",
+                "제1장 목 적",
+                "10101",
+                "1. 심사기준의 목적",
+                "이 기준은 심사관이 상표심사 업무를 수행함에 있어 필요한 기준을 정한다.",
+            ]
+        )
+
+        stripped = strip_running_header(
+            text=text,
+            part_title="제1부 총칙",
+            chapter_title="제1장 목적",
+            page_code="10101",
+            section_title="1. 심사기준의 목적",
+        )
+
+        self.assertEqual(stripped, "이 기준은 심사관이 상표심사 업무를 수행함에 있어 필요한 기준을 정한다.")
+
+    def test_strip_running_header_preserves_real_leading_content(self) -> None:
+        text = "\n".join(
+            [
+                "1. 심사기준의 목적",
+                "이 기준은 심사관이 상표심사 업무를 수행함에 있어 필요한 기준을 정한다.",
+            ]
+        )
+
+        stripped = strip_running_header(
+            text=text,
+            part_title="제1부 총칙",
+            chapter_title="제1장 목적",
+            page_code="10101",
+            section_title="2. 상표심사의 기본원칙",
+        )
+
+        self.assertEqual(stripped, text)
 
     def test_export_nlm_generates_full_source_set(self) -> None:
         config = load_config()

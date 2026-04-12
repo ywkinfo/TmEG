@@ -7,7 +7,15 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from .common import GENERATED_DIR, load_config, load_generated_json, print_json_summary
+from .common import (
+    GENERATED_DIR,
+    clean_title,
+    load_config,
+    load_generated_json,
+    normalize_line,
+    print_json_summary,
+    strip_running_header,
+)
 
 
 NOTEBOOKLM_DIR = GENERATED_DIR / "notebooklm"
@@ -28,7 +36,6 @@ PART_OUTPUT_SPECS = (
 )
 
 DOT_LEADER_RE = re.compile(r"[·ㆍ.]{2,}.*$")
-WHITESPACE_RE = re.compile(r"\s+")
 ARTICLE_REF_RE = re.compile(r"제\s*\d+\s*조(?:\s*의\s*\d+)?(?:\s*제\s*\d+\s*항)?(?:\s*제\s*\d+\s*호)?")
 INLINE_LAW_REF_RE = re.compile(
     r"법\s*제\s*\d+\s*조(?:\s*의\s*\d+)?(?:\s*제\s*\d+\s*항)?(?:\s*제\s*\d+\s*호)?"
@@ -60,39 +67,6 @@ CIRCLED_DIGITS = {
     "⑲": 19,
     "⑳": 20,
 }
-
-
-def normalize_line(value: str) -> str:
-    return WHITESPACE_RE.sub(" ", value.replace("\x00", " ")).strip()
-
-
-def collapse_spaced_syllables(value: str) -> str:
-    tokens = value.split(" ")
-    collapsed: list[str] = []
-    buffer: list[str] = []
-
-    for token in tokens:
-        if re.fullmatch(r"[가-힣]", token):
-            buffer.append(token)
-            continue
-
-        if buffer:
-            collapsed.append("".join(buffer))
-            buffer = []
-        collapsed.append(token)
-
-    if buffer:
-        collapsed.append("".join(buffer))
-
-    return " ".join(part for part in collapsed if part)
-
-
-def clean_title(value: str) -> str:
-    stripped = DOT_LEADER_RE.sub("", value).strip()
-    normalized = normalize_line(stripped)
-    return collapse_spaced_syllables(normalized)
-
-
 def normalize_outline_title(value: str) -> str:
     return normalize_line(DOT_LEADER_RE.sub("", value).strip())
 
@@ -136,39 +110,6 @@ def build_provenance_lines(source_pdf: str, generated_date: str) -> list[str]:
         f"> 파생 문서: {PROVENANCE_DERIVED}",
         "",
     ]
-
-
-def strip_running_header(
-    text: str,
-    part_title: str,
-    chapter_title: str,
-    page_code: str | None,
-    section_title: str,
-) -> str:
-    lines = [normalize_line(line) for line in text.splitlines()]
-    lines = [line for line in lines if line]
-    header_titles = {
-        clean_title(part_title),
-        clean_title(chapter_title),
-    }
-    compact_page_code = (page_code or "").replace(" ", "")
-
-    while lines:
-        current = lines[0]
-        if clean_title(current) in header_titles:
-            lines.pop(0)
-            continue
-        if compact_page_code and current.replace(" ", "") == compact_page_code:
-            lines.pop(0)
-            continue
-        break
-
-    if lines and clean_title(lines[0]) == clean_title(section_title):
-        lines.pop(0)
-
-    return "\n".join(lines).strip()
-
-
 def render_section_body(entry: dict[str, Any]) -> str:
     return strip_running_header(
         text=str(entry.get("text", "")),
