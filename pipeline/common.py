@@ -246,6 +246,32 @@ SYNTHETIC_PROCEDURE_SPECS: dict[str, list[tuple[str, str]]] = {
         ("기준 출원", "사후 효력 판단은 간과된 요지변경 전후 중 어느 출원을 기준으로 볼지에 따라 갈린다."),
     ],
 }
+SYNTHETIC_COMPARISON_TABLE_SPECS: dict[str, list[dict[str, Any]]] = {
+    clean_title("2. 사용사실 및 사용의사의 확인"): [
+        {
+            "headers": ["견련관계가 없는 경우(예시)", "견련관계가 있는 경우(예시)"],
+            "required_blocks": [
+                "견련관계가 없는 경우(예시)\n견련관계가 있는 경우(예시)",
+                "비료, 소주, 휠체어, 컴퓨터, 숙박업, 문구\n구두, 의류, 화장품, 장신구, 시계, 보석 광고업, 은행업, 건설업, 수선업, 식당업\n인쇄업, 광고업, 방송업, 통신업, 공연업",
+            ],
+            "rows": [
+                ("비료, 소주, 휠체어, 컴퓨터, 숙박업, 문구", "구두, 의류, 화장품, 장신구, 시계, 보석"),
+                ("광고업, 은행업, 건설업, 수선업, 식당업", "인쇄업, 광고업, 방송업, 통신업, 공연업"),
+            ],
+            "consume": 2,
+        },
+        {
+            "headers": ["견련관계가 없는 경우(예시)", "견련관계가 있는 경우(예시)"],
+            "required_blocks": [
+                "견련관계가 없는 경우(예시)\n견련관계가 있는 경우(예시)병원업, 법무서비스업, 건축설계업\n변호사업, 변리사업, 공인노무사업",
+            ],
+            "rows": [
+                ("병원업, 법무서비스업, 건축설계업", "변호사업, 변리사업, 공인노무사업"),
+            ],
+            "consume": 1,
+        },
+    ]
+}
 DATEISH_LINE_RE = re.compile(r"^(?:\d{1,2}월\s*\d{1,2}일|\d{1,2}\.\d{1,2}(?:\([^)]+\))?)$")
 SYNTHETIC_TIMELINE_KEYWORDS = {
     "통지서송달일",
@@ -1096,6 +1122,43 @@ def _render_synthetic_procedure_figure(section_title: str) -> str | None:
     )
 
 
+def _render_synthetic_comparison_table(headers: list[str], rows: list[tuple[str, str]]) -> str:
+    head_html = "".join(f"<th scope=\"col\">{escape(header)}</th>" for header in headers)
+    body_html = "".join(
+        f"<tr><td>{escape(left)}</td><td>{escape(right)}</td></tr>" for left, right in rows
+    )
+    return "\n".join(
+        [
+            '<figure class="reader-image reader-synthetic-figure">',
+            f"<table><thead><tr>{head_html}</tr></thead><tbody>{body_html}</tbody></table>",
+            "</figure>",
+        ]
+    )
+
+
+def _render_allowlisted_comparison_table(
+    normalized_blocks: list[dict[str, Any]],
+    start_index: int,
+    section_title: str,
+) -> tuple[str | None, int]:
+    specs = SYNTHETIC_COMPARISON_TABLE_SPECS.get(clean_title(section_title))
+    if not specs:
+        return None, start_index + 1
+
+    for spec in specs:
+        required_blocks = spec["required_blocks"]
+        consume = int(spec["consume"])
+        end_index = start_index + consume
+        if end_index > len(normalized_blocks):
+            continue
+        candidate_texts = [text_block_to_text(block) for block in normalized_blocks[start_index:end_index]]
+        if candidate_texts != required_blocks:
+            continue
+        return _render_synthetic_comparison_table(spec["headers"], spec["rows"]), end_index
+
+    return None, start_index + 1
+
+
 def blocks_to_html(
     blocks: list[dict[str, Any]],
     *,
@@ -1116,6 +1179,16 @@ def blocks_to_html(
 
     index = 0
     while index < len(normalized_blocks):
+        comparison_table_html, next_index = _render_allowlisted_comparison_table(
+            normalized_blocks,
+            index,
+            section_title,
+        )
+        if comparison_table_html is not None:
+            html_blocks.append(comparison_table_html)
+            index = next_index
+            continue
+
         synthetic_figure_html, next_index = _render_synthetic_timeline_figure(normalized_blocks, index)
         if synthetic_figure_html is not None:
             html_blocks.append(synthetic_figure_html)

@@ -561,6 +561,49 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertIn("다음 문단도 일반 본문으로 이어진다.", html)
         self.assertEqual(blocks_to_text(blocks), "이 절은 일반 설명 문단이다.\n\n다음 문단도 일반 본문으로 이어진다.")
 
+    def test_blocks_to_html_reconstructs_allowlisted_comparison_tables(self) -> None:
+        blocks = [
+            {"type": 0, "_pageNumber": 86, "_pageCode": "20206", "_normalizedText": "2.3.2 견련관계가 없는 비유사 상품의 종류를 다수 지정한 경우"},
+            {"type": 0, "_pageNumber": 86, "_pageCode": "20206", "_normalizedText": "견련관계가 없는 경우(예시)\n견련관계가 있는 경우(예시)"},
+            {"type": 0, "_pageNumber": 86, "_pageCode": "20206", "_normalizedText": "비료, 소주, 휠체어, 컴퓨터, 숙박업, 문구\n구두, 의류, 화장품, 장신구, 시계, 보석 광고업, 은행업, 건설업, 수선업, 식당업\n인쇄업, 광고업, 방송업, 통신업, 공연업"},
+            {"type": 0, "_pageNumber": 86, "_pageCode": "20206", "_normalizedText": "2.3.3 개인이 법령상 일정자격 등이 필요한 상품과 관련하여 견련관계가 없는 상품을 2개 이상 지정한 경우"},
+            {"type": 0, "_pageNumber": 86, "_pageCode": "20206", "_normalizedText": "견련관계가 없는 경우(예시)\n견련관계가 있는 경우(예시)병원업, 법무서비스업, 건축설계업\n변호사업, 변리사업, 공인노무사업"},
+            {"type": 0, "_pageNumber": 86, "_pageCode": "20206", "_normalizedText": "2.3.4 기타 출원인이 상표를 사용할 의사 없이 상표 선점이나 타인의 상표등록을 배제할 목적 등으로 출원하는 것이라고 의심이 드는 경우"},
+        ]
+
+        html = blocks_to_html(blocks, section_title="2. 사용사실 및 사용의사의 확인")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 2)
+        self.assertEqual(html.count('<table>'), 2)
+        self.assertIn('<th scope="col">견련관계가 없는 경우(예시)</th>', html)
+        self.assertIn('<th scope="col">견련관계가 있는 경우(예시)</th>', html)
+        self.assertIn('<td>비료, 소주, 휠체어, 컴퓨터, 숙박업, 문구</td>', html)
+        self.assertIn('<td>구두, 의류, 화장품, 장신구, 시계, 보석</td>', html)
+        self.assertIn('<td>광고업, 은행업, 건설업, 수선업, 식당업</td>', html)
+        self.assertIn('<td>인쇄업, 광고업, 방송업, 통신업, 공연업</td>', html)
+        self.assertIn('<td>병원업, 법무서비스업, 건축설계업</td>', html)
+        self.assertIn('<td>변호사업, 변리사업, 공인노무사업</td>', html)
+        self.assertLess(html.index('2.3.2 견련관계가 없는 비유사 상품의 종류를 다수 지정한 경우'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('2.3.3 개인이 법령상 일정자격 등이 필요한 상품과 관련하여 견련관계가 없는 상품을 2개 이상 지정한 경우'), html.rindex('reader-synthetic-figure'))
+        self.assertLess(html.rindex('reader-synthetic-figure'), html.index('2.3.4 기타 출원인이 상표를 사용할 의사 없이'))
+        self.assertEqual(
+            blocks_to_text(blocks),
+            "2.3.2 견련관계가 없는 비유사 상품의 종류를 다수 지정한 경우\n\n견련관계가 없는 경우(예시)\n견련관계가 있는 경우(예시)\n\n비료, 소주, 휠체어, 컴퓨터, 숙박업, 문구\n구두, 의류, 화장품, 장신구, 시계, 보석 광고업, 은행업, 건설업, 수선업, 식당업\n인쇄업, 광고업, 방송업, 통신업, 공연업\n\n2.3.3 개인이 법령상 일정자격 등이 필요한 상품과 관련하여 견련관계가 없는 상품을 2개 이상 지정한 경우\n\n견련관계가 없는 경우(예시)\n견련관계가 있는 경우(예시)병원업, 법무서비스업, 건축설계업\n변호사업, 변리사업, 공인노무사업\n\n2.3.4 기타 출원인이 상표를 사용할 의사 없이 상표 선점이나 타인의 상표등록을 배제할 목적 등으로 출원하는 것이라고 의심이 드는 경우",
+        )
+
+    def test_blocks_to_html_does_not_reconstruct_comparison_tables_outside_allowlisted_section(self) -> None:
+        blocks = [
+            {"type": 0, "_pageNumber": 86, "_pageCode": "20206", "_normalizedText": "견련관계가 없는 경우(예시)\n견련관계가 있는 경우(예시)"},
+            {"type": 0, "_pageNumber": 86, "_pageCode": "20206", "_normalizedText": "비료, 소주, 휠체어, 컴퓨터, 숙박업, 문구\n구두, 의류, 화장품, 장신구, 시계, 보석 광고업, 은행업, 건설업, 수선업, 식당업\n인쇄업, 광고업, 방송업, 통신업, 공연업"},
+        ]
+
+        html = blocks_to_html(blocks, section_title="1. 상표 등의 등록을 받을 수 있는 자")
+
+        self.assertNotIn('reader-synthetic-figure', html)
+        self.assertNotIn('<table>', html)
+        self.assertIn('견련관계가 없는 경우(예시)', html)
+        self.assertIn('비료, 소주, 휠체어, 컴퓨터, 숙박업, 문구', html)
+
     def test_blocks_to_text_reflows_soft_wrapped_lines_and_strips_running_headers(self) -> None:
         blocks = [
             {
