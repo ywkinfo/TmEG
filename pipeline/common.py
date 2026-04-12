@@ -291,6 +291,53 @@ def _extract_text_line_entries(block: dict[str, Any]) -> list[dict[str, Any]]:
     return entries
 
 
+def _extract_text_line_entries_without_geometry(block: dict[str, Any]) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    for line in block.get("lines", []):
+        raw_text = "".join(span.get("text", "") for span in line.get("spans", []))
+        raw_text = raw_text.replace("\x00", "")
+        raw_text = _collapse_doubled_editorial_label(raw_text)
+        text = raw_text.strip()
+        if not text:
+            continue
+        entries.append(
+            {
+                "kind": "text",
+                "raw_text": raw_text,
+                "text": text,
+                "bbox": None,
+                "page_number": block.get("_pageNumber"),
+                "page_code": block.get("_pageCode"),
+            }
+        )
+    return entries
+
+
+def _has_distinct_line_geometry(block: dict[str, Any]) -> bool:
+    return any(line.get("bbox") for line in block.get("lines", []))
+
+
+def _is_single_row_fragmented_block(block: dict[str, Any]) -> bool:
+    line_bboxes = [line.get("bbox") for line in block.get("lines", []) if line.get("bbox")]
+    if len(line_bboxes) < 2:
+        return False
+
+    top = _bbox_value(line_bboxes[0], 1)
+    bottom = _bbox_value(line_bboxes[0], 3)
+    if top is None or bottom is None:
+        return False
+
+    for bbox in line_bboxes[1:]:
+        current_top = _bbox_value(bbox, 1)
+        current_bottom = _bbox_value(bbox, 3)
+        if current_top is None or current_bottom is None:
+            return False
+        if abs(current_top - top) > 0.5 or abs(current_bottom - bottom) > 0.5:
+            return False
+
+    return True
+
+
 def _has_line_geometry(block: dict[str, Any]) -> bool:
     return any((line.get("bbox") or block.get("bbox")) for line in block.get("lines", []))
 
@@ -365,13 +412,8 @@ def _allows_hanging_indent_merge(
     if 24.0 < left_delta <= 56.0:
         return True
 
-    current_width = _bbox_width(current.get("bbox"))
-    if current_width is None:
-        return False
-
     return bool(
         56.0 < left_delta <= 120.0
-        and current_width <= 220.0
         and _ends_with_hangul_syllable(previous.get("text", ""))
         and _starts_with_hangul_word_fragment(current_text)
     )
@@ -387,6 +429,50 @@ def _starts_hanging_indent_excluded_text(text: str, bbox: Any = None) -> bool:
 
 def _normalize_common_broken_legal_spacing(text: str) -> str:
     return re.sub(r"([가-힣])에의 하여", r"\1에 의하여", text)
+
+
+def _can_merge_lines_without_geometry(previous: dict[str, Any], current: dict[str, Any]) -> bool:
+    if not previous["raw_text"].endswith((" ", "\u00a0")) and not current["raw_text"].startswith((" ", "\u00a0")):
+        return False
+    if _starts_with_large_indent_paragraph_start(current["text"]):
+        return False
+    if _looks_like_short_heading(previous["text"]):
+        return False
+    if _looks_like_short_heading(current["text"]):
+        return False
+    if _starts_hanging_indent_excluded_text(current["text"]):
+        return False
+    if _ends_sentence(previous["text"]):
+        return False
+    return True
+
+
+def _reflow_text_block_without_geometry(block: dict[str, Any]) -> tuple[str, str]:
+    line_entries = _extract_text_line_entries_without_geometry(block)
+    if not line_entries:
+        return "", ""
+
+    merged_raw_text = line_entries[0]["raw_text"]
+    merged_text = line_entries[0]["text"]
+    previous_line = line_entries[0]
+    for entry in line_entries[1:]:
+        if _can_merge_lines_without_geometry(previous_line, entry):
+            separator = " " if merged_raw_text.endswith((" ", "\u00a0")) or entry["raw_text"].startswith((" ", "\u00a0")) else ""
+            merged_raw_text = f"{merged_raw_text}{separator}{entry['raw_text']}"
+            merged_text = f"{merged_text}{separator}{entry['text']}"
+            previous_line = entry
+            continue
+
+        separator = "\n\n" if (
+            _starts_with_large_indent_paragraph_start(entry["text"])
+            or _looks_like_short_heading(entry["text"])
+            or _starts_hanging_indent_excluded_text(entry["text"])
+        ) else "\n"
+        merged_raw_text = f"{merged_raw_text}{separator}{entry['raw_text']}"
+        merged_text = f"{merged_text}{separator}{entry['text']}"
+        previous_line = entry
+
+    return merged_raw_text, _normalize_common_broken_legal_spacing(merged_text.strip())
 
 
 def _can_merge_lines(previous: dict[str, Any], current: dict[str, Any]) -> bool:
@@ -572,11 +658,28 @@ def normalize_content_blocks(
 
     normalized_blocks: list[dict[str, Any]] = []
     should_strip_section_title = bool(section_title)
+    paragraph_lines: list[dict[str, Any]] = []
 
     for page_number in sorted(pages):
         page_elements: list[dict[str, Any]] = []
         for _, block in sorted(pages[page_number], key=_block_sort_key):
             if block.get("type") == 0:
+                if block.get("lines") and (
+                    not _has_distinct_line_geometry(block) or _is_single_row_fragmented_block(block)
+                ):
+                    block_raw_text, block_text = _reflow_text_block_without_geometry(block)
+                    if block_text:
+                        page_elements.append(
+                            {
+                                "kind": "text",
+                                "raw_text": block_raw_text,
+                                "text": block_text,
+                                "bbox": block.get("bbox"),
+                                "page_number": block.get("_pageNumber"),
+                                "page_code": block.get("_pageCode"),
+                            }
+                        )
+                    continue
                 if not _has_line_geometry(block):
                     block_text = text_block_to_text(block)
                     if block_text:
@@ -612,7 +715,6 @@ def normalize_content_blocks(
         page_elements = _collapse_duplicate_labels(page_elements)
         should_strip_section_title = False
 
-        paragraph_lines: list[dict[str, Any]] = []
         for element in page_elements:
             if element.get("kind") == "image":
                 _flush_paragraph(paragraph_lines, normalized_blocks)
@@ -631,8 +733,7 @@ def normalize_content_blocks(
             _flush_paragraph(paragraph_lines, normalized_blocks)
             paragraph_lines = [element]
 
-        _flush_paragraph(paragraph_lines, normalized_blocks)
-
+    _flush_paragraph(paragraph_lines, normalized_blocks)
     return normalized_blocks
 
 
