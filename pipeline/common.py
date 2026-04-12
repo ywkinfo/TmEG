@@ -272,6 +272,78 @@ SYNTHETIC_COMPARISON_TABLE_SPECS: dict[str, list[dict[str, Any]]] = {
         },
     ]
 }
+SYNTHETIC_MULTI_COLUMN_TABLE_SPECS: dict[str, list[dict[str, Any]]] = {
+    clean_title("1. 출원서의 기재사항"): [
+        {
+            "headers": ["구 분", "상표견본", "설명란 기재", "시각적 표현", "첨부자료"],
+            "required_blocks": [
+                "구 분",
+                "상표견본",
+                "설명란 기재",
+                "시각적 표현",
+                "첨부자료",
+                "일반상표\n상표견본 1개\n임의\n불필요",
+                "입체상표",
+                "특징을 충분히 나타내는 5장 이하의 도면 또는 입체사진",
+                "임의",
+                "불필요",
+                "사용증거(입체적 형상만으로 된 상표)",
+                "색채만으로 된 상표",
+                "단일색채나 색채의 조합만으로 채색된 1장의 도면 또는 사진",
+                "필수",
+                "불필요",
+                "사용증거",
+                "홀로그램상표",
+                "특징을 충분히 나타내는 2장 이상 5장 이하의 도면 또는 사진",
+                "필수",
+                "불필요",
+                "동영상자료(임의)",
+                "동작상표",
+                "특징을 충분히 나타내는 2장 이상 5장 이하의 도면 또는 사진",
+                "필수",
+                "불필요",
+                "전자적 기록매체(필수)",
+                "구 분",
+                "상표견본",
+                "설명란 기재",
+                "시각적 표현",
+                "첨부자료",
+                "소리상표",
+                "불필요",
+                "필수",
+                "필수",
+                "사용증거(식별력 없는 소리인 경우)소리파일, 악보(임의)",
+                "냄새상표",
+                "불필요",
+                "필수",
+                "필수",
+                "사용증거냄새견본",
+                "기타 시각적 상표",
+                "특징을 충분히 나타내는 5장 이하의 도면 또는 사진",
+                "필수",
+                "불필요",
+                "사용증거동영상자료(임의)",
+                "기타 비시각적 상표",
+                "불필요",
+                "필수",
+                "필수",
+                "사용증거기타 자료(임의)",
+            ],
+            "rows": [
+                ["일반상표", "상표견본 1개", "임의", "불필요", ""],
+                ["입체상표", "특징을 충분히 나타내는 5장 이하의 도면 또는 입체사진", "임의", "불필요", "사용증거(입체적 형상만으로 된 상표)"],
+                ["색채만으로 된 상표", "단일색채나 색채의 조합만으로 채색된 1장의 도면 또는 사진", "필수", "불필요", "사용증거"],
+                ["홀로그램상표", "특징을 충분히 나타내는 2장 이상 5장 이하의 도면 또는 사진", "필수", "불필요", "동영상자료(임의)"],
+                ["동작상표", "특징을 충분히 나타내는 2장 이상 5장 이하의 도면 또는 사진", "필수", "불필요", "전자적 기록매체(필수)"],
+                ["소리상표", "불필요", "필수", "필수", "사용증거(식별력 없는 소리인 경우)소리파일, 악보(임의)"],
+                ["냄새상표", "불필요", "필수", "필수", "사용증거냄새견본"],
+                ["기타 시각적 상표", "특징을 충분히 나타내는 5장 이하의 도면 또는 사진", "필수", "불필요", "사용증거동영상자료(임의)"],
+                ["기타 비시각적 상표", "불필요", "필수", "필수", "사용증거기타 자료(임의)"],
+            ],
+            "consume": 51,
+        }
+    ]
+}
 DATEISH_LINE_RE = re.compile(r"^(?:\d{1,2}월\s*\d{1,2}일|\d{1,2}\.\d{1,2}(?:\([^)]+\))?)$")
 SYNTHETIC_TIMELINE_KEYWORDS = {
     "통지서송달일",
@@ -1136,6 +1208,20 @@ def _render_synthetic_comparison_table(headers: list[str], rows: list[tuple[str,
     )
 
 
+def _render_synthetic_multi_column_table(headers: list[str], rows: list[list[str]]) -> str:
+    head_html = "".join(f'<th scope="col">{escape(header)}</th>' for header in headers)
+    body_html = "".join(
+        f"<tr>{''.join(f'<td>{escape(cell)}</td>' for cell in row)}</tr>" for row in rows
+    )
+    return "\n".join(
+        [
+            '<figure class="reader-image reader-synthetic-figure">',
+            f"<table><thead><tr>{head_html}</tr></thead><tbody>{body_html}</tbody></table>",
+            "</figure>",
+        ]
+    )
+
+
 def _render_allowlisted_comparison_table(
     normalized_blocks: list[dict[str, Any]],
     start_index: int,
@@ -1155,6 +1241,29 @@ def _render_allowlisted_comparison_table(
         if candidate_texts != required_blocks:
             continue
         return _render_synthetic_comparison_table(spec["headers"], spec["rows"]), end_index
+
+    return None, start_index + 1
+
+
+def _render_allowlisted_multi_column_table(
+    normalized_blocks: list[dict[str, Any]],
+    start_index: int,
+    section_title: str,
+) -> tuple[str | None, int]:
+    specs = SYNTHETIC_MULTI_COLUMN_TABLE_SPECS.get(clean_title(section_title))
+    if not specs:
+        return None, start_index + 1
+
+    for spec in specs:
+        required_blocks = spec["required_blocks"]
+        consume = int(spec["consume"])
+        end_index = start_index + consume
+        if end_index > len(normalized_blocks):
+            continue
+        candidate_texts = [text_block_to_text(block) for block in normalized_blocks[start_index:end_index]]
+        if candidate_texts != required_blocks:
+            continue
+        return _render_synthetic_multi_column_table(spec["headers"], spec["rows"]), end_index
 
     return None, start_index + 1
 
@@ -1179,6 +1288,16 @@ def blocks_to_html(
 
     index = 0
     while index < len(normalized_blocks):
+        multi_column_table_html, next_index = _render_allowlisted_multi_column_table(
+            normalized_blocks,
+            index,
+            section_title,
+        )
+        if multi_column_table_html is not None:
+            html_blocks.append(multi_column_table_html)
+            index = next_index
+            continue
+
         comparison_table_html, next_index = _render_allowlisted_comparison_table(
             normalized_blocks,
             index,
