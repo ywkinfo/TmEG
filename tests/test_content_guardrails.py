@@ -311,6 +311,19 @@ BAD_FAITH_COMPARISON_BLOCK_TEXTS = [
     "제척기간\n5년\n없음\n없음\n없음",
 ]
 
+GOODS_TIMING_FIGURE_BLOCK_TEXTS = [
+    "2.2.1 지정상품이 상품류 구분에 맞는지, 포괄이거나 불명확한지 여부를 판단하는 시점은 원칙적으로 출원시로 하며 소급하여 적용하지 아니한다. 따라서 「상품고시」의 개정으로 새로운 포괄명칭이 도입된 경우에는 그 시행일 이후에 출원된 지정상품부터 새로운 포괄명칭을 인정하며, 그 반대의 경우에도 마찬가지이다.",
+    "《지정상품 심사 판단시점 : 출원시》",
+    "심     사2012.12.1",
+    "상 표 출 원2011.12.1",
+    "상품고시개정2012.1.1",
+    "스포츠후원 및 흥행업(S121001)",
+    "<지정상품>스포츠 및오락흥행업(S1210)",
+    "<상품인정>스포츠 및오락흥행업(S121001)(S121002)",
+    "오락흥행업(S121002)",
+    "2.2.2 법 제45조에 의하여 분할출원된 지정상품이 상품류 구분에 맞는지, 포괄이거나 불명확한지 여부를 판단하는 시점은 분할출원시가 아니라 최초출원시를 기준으로 한다.",
+]
+
 
 class ContentGuardrailsTest(unittest.TestCase):
     def test_build_code_to_page_map_prefers_body_page_for_duplicate_codes(self) -> None:
@@ -1055,6 +1068,28 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertLess(html.index('《홀로그램상표의 상표등록출원서 기재사항 및 첨부서류 등》'), html.index('reader-synthetic-figure'))
         self.assertLess(html.index('reader-synthetic-figure'), html.index('2.3 홀로그램상표를 출원하면서 출원서에 상표견본을 첨부하여 제출하지 않고'))
         self.assertEqual(blocks_to_text(blocks), "\n\n".join(HOLOGRAM_FILING_TABLE_BLOCK_TEXTS))
+
+    def test_blocks_to_html_renders_allowlisted_goods_timing_crop_figure(self) -> None:
+        blocks = make_text_blocks(GOODS_TIMING_FIGURE_BLOCK_TEXTS, page_number=99, page_code="20405")
+
+        html = blocks_to_html(blocks, section_title="2. 지정상품의 심사")
+
+        self.assertIn('<figure class="reader-image">', html)
+        self.assertIn('src="generated/images/da51bb42fb7e.png"', html)
+        self.assertIn('<figcaption>《지정상품 심사 판단시점 : 출원시》</figcaption>', html)
+        self.assertNotIn('reader-synthetic-figure', html)
+        self.assertLess(html.index('2.2.1 지정상품이 상품류 구분에 맞는지'), html.index('generated/images/da51bb42fb7e.png'))
+        self.assertLess(html.index('generated/images/da51bb42fb7e.png'), html.index('2.2.2 법 제45조에 의하여 분할출원된 지정상품이'))
+        self.assertEqual(blocks_to_text(blocks), "\n\n".join(GOODS_TIMING_FIGURE_BLOCK_TEXTS))
+
+    def test_blocks_to_html_does_not_render_goods_timing_crop_outside_allowlisted_section(self) -> None:
+        blocks = make_text_blocks(GOODS_TIMING_FIGURE_BLOCK_TEXTS, page_number=99, page_code="20405")
+
+        html = blocks_to_html(blocks, section_title="1. 지정상품의 기재요령")
+
+        self.assertNotIn('src="generated/images/da51bb42fb7e.png"', html)
+        self.assertNotIn('reader-image', html)
+        self.assertIn('《지정상품 심사 판단시점 : 출원시》', html)
 
     def test_blocks_to_html_reconstructs_allowlisted_bad_faith_comparison_table(self) -> None:
         blocks = make_text_blocks(BAD_FAITH_COMPARISON_BLOCK_TEXTS, page_number=298, page_code="30903")
