@@ -30,6 +30,79 @@ build_manifest_image_paths = importlib.import_module("pipeline.qa_content").buil
 collect_guardrail_errors = importlib.import_module("pipeline.qa_content").collect_guardrail_errors
 
 
+MARK_TYPE_TABLE_BLOCK_TEXTS = [
+    "1.1.4 출원서의 상표유형별 기재사항",
+    "구 분",
+    "상표견본",
+    "설명란 기재",
+    "시각적 표현",
+    "첨부자료",
+    "일반상표\n상표견본 1개\n임의\n불필요",
+    "입체상표",
+    "특징을 충분히 나타내는 5장 이하의 도면 또는 입체사진",
+    "임의",
+    "불필요",
+    "사용증거(입체적 형상만으로 된 상표)",
+    "색채만으로 된 상표",
+    "단일색채나 색채의 조합만으로 채색된 1장의 도면 또는 사진",
+    "필수",
+    "불필요",
+    "사용증거",
+    "홀로그램상표",
+    "특징을 충분히 나타내는 2장 이상 5장 이하의 도면 또는 사진",
+    "필수",
+    "불필요",
+    "동영상자료(임의)",
+    "동작상표",
+    "특징을 충분히 나타내는 2장 이상 5장 이하의 도면 또는 사진",
+    "필수",
+    "불필요",
+    "전자적 기록매체(필수)",
+    "구 분",
+    "상표견본",
+    "설명란 기재",
+    "시각적 표현",
+    "첨부자료",
+    "소리상표",
+    "불필요",
+    "필수",
+    "필수",
+    "사용증거(식별력 없는 소리인 경우)소리파일, 악보(임의)",
+    "냄새상표",
+    "불필요",
+    "필수",
+    "필수",
+    "사용증거냄새견본",
+    "기타 시각적 상표",
+    "특징을 충분히 나타내는 5장 이하의 도면 또는 사진",
+    "필수",
+    "불필요",
+    "사용증거동영상자료(임의)",
+    "기타 비시각적 상표",
+    "불필요",
+    "필수",
+    "필수",
+    "사용증거기타 자료(임의)",
+]
+
+
+def make_mark_type_table_blocks(*, extra_texts: list[str] | None = None, truncate_after: int | None = None) -> list[dict[str, object]]:
+    texts = MARK_TYPE_TABLE_BLOCK_TEXTS.copy()
+    if truncate_after is not None:
+        texts = texts[:truncate_after]
+    if extra_texts:
+        texts.extend(extra_texts)
+    return [
+        {
+            "type": 0,
+            "_pageNumber": 91,
+            "_pageCode": "20303",
+            "_normalizedText": text,
+        }
+        for text in texts
+    ]
+
+
 class ContentGuardrailsTest(unittest.TestCase):
     def test_build_code_to_page_map_prefers_body_page_for_duplicate_codes(self) -> None:
         inventory = {
@@ -590,6 +663,50 @@ class ContentGuardrailsTest(unittest.TestCase):
             blocks_to_text(blocks),
             "2.3.2 견련관계가 없는 비유사 상품의 종류를 다수 지정한 경우\n\n견련관계가 없는 경우(예시)\n견련관계가 있는 경우(예시)\n\n비료, 소주, 휠체어, 컴퓨터, 숙박업, 문구\n구두, 의류, 화장품, 장신구, 시계, 보석 광고업, 은행업, 건설업, 수선업, 식당업\n인쇄업, 광고업, 방송업, 통신업, 공연업\n\n2.3.3 개인이 법령상 일정자격 등이 필요한 상품과 관련하여 견련관계가 없는 상품을 2개 이상 지정한 경우\n\n견련관계가 없는 경우(예시)\n견련관계가 있는 경우(예시)병원업, 법무서비스업, 건축설계업\n변호사업, 변리사업, 공인노무사업\n\n2.3.4 기타 출원인이 상표를 사용할 의사 없이 상표 선점이나 타인의 상표등록을 배제할 목적 등으로 출원하는 것이라고 의심이 드는 경우",
         )
+
+    def test_blocks_to_html_reconstructs_allowlisted_mark_type_table(self) -> None:
+        blocks = make_mark_type_table_blocks(extra_texts=["1.2 상표유형별 기재사항 및 상표견본에 대한 심사"])
+
+        html = blocks_to_html(blocks, section_title="1. 출원서의 기재사항")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertIn('<th scope="col">구 분</th>', html)
+        self.assertIn('<th scope="col">첨부자료</th>', html)
+        self.assertIn('<td>일반상표</td>', html)
+        self.assertIn('<td>상표견본 1개</td>', html)
+        self.assertIn('<td></td>', html)
+        self.assertIn('<td>사용증거(입체적 형상만으로 된 상표)</td>', html)
+        self.assertIn('<td>사용증거(식별력 없는 소리인 경우)소리파일, 악보(임의)</td>', html)
+        self.assertIn('<td>사용증거기타 자료(임의)</td>', html)
+        self.assertLess(html.index('1.1.4 출원서의 상표유형별 기재사항'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index('1.2 상표유형별 기재사항 및 상표견본에 대한 심사'))
+        self.assertEqual(
+            blocks_to_text(blocks),
+            "\n\n".join(block["_normalizedText"] for block in blocks),
+        )
+
+    def test_blocks_to_html_does_not_reconstruct_mark_type_table_outside_allowlisted_section(self) -> None:
+        blocks = make_mark_type_table_blocks()
+
+        html = blocks_to_html(blocks, section_title="1. 상표 등의 등록을 받을 수 있는 자")
+
+        self.assertNotIn('reader-synthetic-figure', html)
+        self.assertNotIn('<table>', html)
+        self.assertIn('구 분', html)
+        self.assertIn('소리상표', html)
+        self.assertIn('사용증거기타 자료(임의)', html)
+
+    def test_blocks_to_html_falls_back_for_incomplete_mark_type_table_cluster(self) -> None:
+        blocks = make_mark_type_table_blocks(truncate_after=len(MARK_TYPE_TABLE_BLOCK_TEXTS) - 1)
+
+        html = blocks_to_html(blocks, section_title="1. 출원서의 기재사항")
+
+        self.assertNotIn('reader-synthetic-figure', html)
+        self.assertNotIn('<table>', html)
+        self.assertIn('<p>구 분</p>', html)
+        self.assertIn('일반상표<br />상표견본 1개<br />임의<br />불필요', html)
+        self.assertIn('기타 비시각적 상표', html)
 
     def test_blocks_to_html_does_not_reconstruct_comparison_tables_outside_allowlisted_section(self) -> None:
         blocks = [
