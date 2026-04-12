@@ -136,12 +136,14 @@ SYNTHETIC_TIMELINE_SPECS: dict[str, dict[str, Any]] = {
         "dates": ["12월 30일", "12월 31일", "2월 28일"],
         "labels": ["통지서송달일", "기산일", "지정기간만료"],
         "durations": ["지정기간 2개월"],
+        "imageRelativePath": "generated/images/3d4c8a2e7b9f.png",
     },
     clean_title("《기간 만료일이 공휴일인 경우 기간연장 기산일》"): {
         "layout": "flow",
         "dates": ["7.19", "7.20", "9.19(수)", "9.20(목)", "9.24(월)", "10.19(목)"],
         "labels": ["통지서송달일", "기산일", "만료일", "기간연장 기산일", "만료일", "연장신청일", "연장기간 만료일"],
         "durations": ["지정 2개월", "연장기간 1개월"],
+        "imageRelativePath": "generated/images/7f0f56d996ca.png",
     },
 }
 # HTML-only reader aids for tightly allowlisted procedure sections.
@@ -987,6 +989,21 @@ def _take_expected_timeline_values(counter: Counter[str], expected_values: list[
     return taken
 
 
+def _render_timeline_crop_figure(title: str, relative_path: str) -> str:
+    return "\n".join(
+        [
+            '<figure class="reader-image">',
+            (
+                f'<a href="{escape(relative_path)}" target="_blank" rel="noreferrer">'
+                f'<img src="{escape(relative_path)}" loading="lazy" alt="{escape(title)}" />'
+                "</a>"
+            ),
+            f"<figcaption>{escape(title)}</figcaption>",
+            "</figure>",
+        ]
+    )
+
+
 def _render_synthetic_timeline_table(title: str, items: list[str]) -> str | None:
     spec = SYNTHETIC_TIMELINE_SPECS.get(clean_title(title))
     if spec is None:
@@ -1003,6 +1020,10 @@ def _render_synthetic_timeline_table(title: str, items: list[str]) -> str | None
     durations = _take_expected_timeline_values(remaining, spec["durations"])
     if dates is None or labels is None or durations is None or any(remaining.values()):
         return None
+
+    image_relative_path = spec.get("imageRelativePath")
+    if image_relative_path:
+        return _render_timeline_crop_figure(title, image_relative_path)
 
     if spec["layout"] == "columns":
         label_cells = "".join(f"<td>{escape(label)}</td>" for label in labels)
