@@ -86,21 +86,230 @@ MARK_TYPE_TABLE_BLOCK_TEXTS = [
 ]
 
 
+def make_text_blocks(
+    texts: list[str],
+    *,
+    page_number: int = 91,
+    page_code: str = "20303",
+) -> list[dict[str, object]]:
+    return [
+        {
+            "type": 0,
+            "_pageNumber": page_number,
+            "_pageCode": page_code,
+            "_normalizedText": text,
+        }
+        for text in texts
+    ]
+
+
 def make_mark_type_table_blocks(*, extra_texts: list[str] | None = None, truncate_after: int | None = None) -> list[dict[str, object]]:
     texts = MARK_TYPE_TABLE_BLOCK_TEXTS.copy()
     if truncate_after is not None:
         texts = texts[:truncate_after]
     if extra_texts:
         texts.extend(extra_texts)
-    return [
-        {
-            "type": 0,
-            "_pageNumber": 91,
-            "_pageCode": "20303",
-            "_normalizedText": text,
-        }
-        for text in texts
-    ]
+    return make_text_blocks(texts)
+
+
+GOODS_NAMING_TABLE_BLOCK_TEXTS = [
+    "1.1.3 독립적인 거래가 가능한 개별·구체적인 상품명칭을 기재하여야 하지만, 예외적으로 「상품고시」에서 인정하는 『협의의 포괄명칭』 및 『광의의 포괄명칭』을 기재할 수도 있다. 그 외에 포괄상품을 기재하는 경우 심사관은 법 제38조제1항을 적용하여 거절이유를 통지하여야 한다.",
+    "구   분\n협의의 포괄명칭\n광의의 포괄명칭",
+    "정   의",
+    "동일 상품류 내 동일한 유사상품군에 속하는 여러 상품을 포함",
+    "동일 또는 복수의 상품류 내 복수 유사군에 속하는 상품을 포함",
+    "포괄명칭 사례\n신발(제25류, G270101)\n의류(제25류)",
+    "스포츠전문의류(G430301),",
+    "겉옷",
+    "(G450101),",
+    "한복(G4502),",
+    "속옷",
+    "(G4503) 등 포함",
+    "해당하는 상품 또는 유사상품군",
+    "가죽신, 운동화, 슬리퍼, 장화, 방한화, 골프화 등 포함",
+    "1.2 지정상품은 한글로 기재함을 원칙으로 하되 한자나 외국어를 병기할 수도 있다.",
+]
+
+GOODS_REVIEW_TABLE_BLOCK_TEXTS = [
+    "《지정상품 세분화에 따라 거절이유 해소가 가능한 경우 예시》",
+    "구   분\n지정상품",
+    "의류(제25류)(포함되는 유사상품군 : G430301, G450101, G450102, G4502, G4503, G450401, G4513)",
+    "최초출원지정상품",
+    "거절이유\n넥타이(G450401)와 관련하여 타인의 선등록상표와 동일 유사(법§34①7)",
+    "보정 후지정상품",
+    "넥타이가 속한 G450401 상품군을 제외, G430301, G450101, G450102, G4502, G4503, G4513에 속하는 구체적인 상품으로 보정",
+    "《지정상품이 인정/불인정되는 경우》",
+    "인정되지 않는 불명확한 명칭\n인정되는 명확한 명칭",
+    "도매업, 소매업, 판매대행업, 판매알선업, 상품중개업",
+    "가구소매업, 가구도매업, 가구판매대행업, 가구판매알선업, 가구중개업",
+    "수리업, 수선업, 설치업, 유지관리업",
+    "가구수리업, 가방수선업, 화재경보기설치업, 컴퓨터하드웨어유지관리업 등",
+    "학원경영업",
+    "외국어학원경영업, 미술학원경영업, 컴퓨터학원경영업 등",
+    "2.2 판단시점",
+]
+
+ONE_MARK_ONE_APPLICATION_TABLE_BLOCK_TEXTS = [
+    "1.2 1상표 1출원 위반유형에 따른 심사처리방법",
+    "출원인이 1상표 1출원을 위반하여 출원한 경우 다음 표와 같이 처리하되, 출원인에게 거절이유통지시 해당하는 상표, 지정상품의 삭제보정 및 분할 가능 여부를 함께 통지하여야 한다.",
+    "1상표 1출원 위반 유형\n심 사 처 리 방 법\n보정방법",
+    "동일상품에 동일상표를 중복출원",
+    "후출원은 법§38① 위반으로 거절",
+    "포괄상품인 경우(의류)에는 세부상품(바지)으로 감축",
+    "보정",
+    "일부상품에 동일상표를 중복출원\n후출원은 법§38① 위반으로 거절\n중복상품 삭제보정",
+    "선등록상표와 동일상표를 동일상품에 중복출원",
+    "출원상표를 법§38① 위반으로 거절",
+    "포괄상품인 경우(의류)에는 세부상품(바지)으로 감축",
+    "보정",
+    "선등록상표와 동일상표를 일부상품에 중복출원",
+    "출원상표를 법§38① 위반으로 거절",
+    "중복상품 삭제보정",
+    "1개 출원서에 동일상품 중복기재",
+    "법§59(직권보정 등)에 따라 직권삭제 후출원공고결정시 직권보정사항 통보",
+    "-",
+    "일반상표나 색채상표를 출원하면서 상표견본을 여러 개 제출",
+    "출원상표를 법§38① 위반으로 거절",
+    "견본보정",
+    "소리·냄새 등 비시각적 상표출원시 문자등 시각상표견본을 함께 제출",
+    "출원상표를 법§38① 위반으로 거절",
+    "상표견본 삭제보정",
+    "1.3 1상표 1출원 위반 여부의 판단시점",
+]
+
+SOUND_FILING_TABLE_BLOCK_TEXTS = [
+    "《소리상표의 상표등록출원서 기재사항 및 첨부서류 등》",
+    "제출되는 서류 등의 종류",
+    "관련조항",
+    "필수 여부",
+    "견본",
+    "규칙 제28조제2항제1호",
+    "없음",
+    "설명서",
+    "규칙 제28조제2항제2호",
+    "필수",
+    "시각적 표현",
+    "규칙 제28조제2항제3호(규칙 제25조제1항제10호)",
+    "필수",
+    "소리파일",
+    "규칙 제28조제2항제4호",
+    "필수",
+    "악보",
+    "규칙 제28조제5항제5호",
+    "선택",
+    "2.2 소리상표는 상표의 설명란에 상표에 대한 설명이 필수적으로 기재(또는 별도의 상표에 대한 설명서를 제출)되어야 하므로(규칙§28②2), 상표의 설명이 제출되지 아니한 경우 법 제39조 및 규칙 제32조에 의하여 방식심사를 통해 보정이 이루어지는 것이 원칙이나, 상표에 대한 설명이 없는 출원서가 착오로 심사관에게 이송된 경우에는 법 제2조제1항의 상표의 정의규정에 합치하지 않는 것으로 보아 거절이유를 통지할 수 있다.",
+]
+
+SMELL_FILING_TABLE_BLOCK_TEXTS = [
+    "《냄새상표의 상표등록출원서 기재사항 및 첨부서류 등》",
+    "제출되는 서류 등의 종류",
+    "관련조항",
+    "필수 여부",
+    "견본",
+    "규칙 제28조제2항제1호",
+    "없음",
+    "상표에 대한 설명서",
+    "규칙 제28조제2항제2호",
+    "필수",
+    "시각적표현",
+    "규칙 제28조제1항제3호",
+    "필수",
+    "냄새견본(밀폐용기, 패치)",
+    "규칙 제28조제2항제5호",
+    "필수",
+    "2.2 냄새상표는 상표의 설명란에 상표에 대한 설명이 필수적으로 기재(또는 별도의 상표에 대한 설명서를 제출)되어야 하므로(규칙§28②2), 상표의 설명이 제출되지 아니한 경우 법 제39조 및 규칙 제32조에 의하여 방식심사를 통해 보정이 이루어지는 것이 원칙이나, 상표에 대한 설명이 없는 출원서가 착오로 심사관에게 이송된 경우에는 법 제2조제1항의 상표의 정의규정에 합치하지 않는 것으로 보아 거절이유를 통지할 수 있다.",
+]
+
+SMELL_DISTINCTIVENESS_EXAMPLE_BLOCK_TEXTS = [
+    "《품질·효능·용도 등을 직접적으로 나타내는 경우의 예시》",
+    "지정상품\n냄   새타이어\n고무향목재가공업\n나무냄새커피전문점업\n커피향",
+]
+
+FAMOUS_MARK_COMPARISON_BLOCK_TEXTS = [
+    "《참고 : 주지상표와 저명상표의 비교》",
+    "구분\n주지상표\n저명상표입법취지\n사용사실상태의 보호\n출처혼동방지 또는 희석화 방지",
+    "인식도",
+    "당해 상표가 사용된 상품에 관한 거래자 및 관련 수요자층",
+    "이종상품·이종영업에까지 걸친 일반수요자층",
+    "범위",
+    "상품의 동일․유사범위 내",
+    "이종상품·이종영업까지 확대",
+    "제척기간\n5년\n없음",
+]
+
+FAITH_COMPARISON_BLOCK_TEXTS = [
+    "《법 제34조제1항제20호와 제4호 비교》",
+    "법 §34①20\n법 §34①4",
+    "당사자간 신의칙 위반이 있는 경우 적용",
+    "상표 그 자체 또는 상품과의 관계에서 공서양속에 위반되거나, 출원·등록과정에서 사회적 타당성이 현저히 결여된 경우 적용단순한 신의칙 위반이 있었다는 이유만으로는 적용이 어렵고, 출원·등록과정에서 사회적 타당성이 현저히 결여된 경우 적용",
+    "출원하기까지의 과정에서 신의칙 위반이 있는 경우 적용",
+    "《법 제34조제1항제20호와 제13호 비교》",
+    "법 §34①20\n법§34①13",
+    "모방대상상표의 인식도가 필요 없음\n모방대상상표가 특정인의 상표로 인식되어야 함모방대상상표 사용자와 출원인간 신의관계 필요",
+    "모방대상상표 사용자와 출원인간 신의관계 불요",
+    "타인의 사용, 사용 준비중인 사실만 알고 있으면 적용",
+    "부정한 목적이 있는 경우 적용",
+    "동일·유사한 상품에 적용",
+    "상품 제한 없음(다만, 부정목적 유무 판단을 위해 견련성 검토 필요)",
+]
+
+FAMOUS_DECEASED_COMPARISON_BLOCK_TEXTS = [
+    "《법 제34조제1항제2호, 제4호, 제6호 비교》",
+    "적용조문\n대  상\n\n요 건",
+    "법§34①2",
+    "저명한 고인",
+    "고인과의 관계를 거짓으로 표시하거나 비방·모욕하거나 평판을 나쁘게 할 우려가 있는 경우",
+    "법§34①4",
+    "저명한 고인",
+    "저명한 고인의 성명을 정당한 권리자의 동의 없이 출원하여 그 명성에 편승하려는 경우",
+    "법§34①6",
+    "현존하는 저명한 타인",
+    "저명한 타인의 성명이나 그 약칭을 포함하는 경우",
+]
+
+HOLOGRAM_FILING_TABLE_BLOCK_TEXTS = [
+    "《홀로그램상표의 상표등록출원서 기재사항 및 첨부서류 등》",
+    "제출되는 서류 등의 종류\n관련조항\n필수 여부",
+    "상표견본",
+    "규칙 제28조제2항제1호(규칙 제29조제2항제3호)",
+    "필수",
+    "상표에 대한 설명서\n규칙 제28조제2항제2호\n필수",
+    "전자적 기록매체",
+    "규칙 제28조제5항제4호",
+    "출원인 선택",
+    "규칙 제29조제3항제2호\n심사관 요구",
+    "2.3 홀로그램상표를 출원하면서 출원서에 상표견본을 첨부하여 제출하지 않고 전자적 기록매체만을 제출한 경우 상당한 기간을 정하여 도면 또는 사진으로 보완할 것을 명하여야 하며, 출원인이 절차보완서를 제출한 때에는 그 절차보완서가 지식재산처에 도달한 날을 상표등록출원일로 본다(법§37).",
+]
+
+BAD_FAITH_COMPARISON_BLOCK_TEXTS = [
+    "《법 제34조제1항제9호, 제11호, 제12호, 제13호 비교》",
+    "구분\n법§34①9\n법§34①11\n법§34①12\n법§34①13출처 오인·혼동 방지, 주지상표권자 이익보호",
+    "저명상품·영업과의 오인·혼동으로부터 수요자 보호, 저명상표 희석화 방지",
+    "상품의 품질오인, 출처 오인·혼동으로 인한 수요자 기만 방지(다만, 출처의 오인·혼동은 법§34①9,11,13 등을 요건에 맞게 우선 적용하고, 본호는 수요자 기만에 초점을 맞춰 적용)",
+    "진정한 상표사용자 신용보호, 브로커 방지, 공정한 경쟁질서 확립",
+    "취지",
+    "동종업종에서 수요자들에게 현저하게 인식",
+    "이종상품이나 영업에 걸친 거래자 및 일반수요자 대다수에게 현저하게 인식",
+    "국내의 일반거래에 있어서 수요자나 거래자에게 인식",
+    "국내·외 수요자들에게 특정인의 상품표지로 인식",
+    "주지도",
+    "비유사하여도 모티브나 아이디어 등을 비교하여 저명상표가 용이하게 연상되는 경우",
+    "상표\n동일·유사",
+    "동일·유사\n동일·유사",
+    "비유사(다만, 수요자 기만 발생과 관련하여 견련관계 고려)",
+    "비유사(다만, 부정목적 추정을 위해서는 견련성 검토 필요)",
+    "상품\n동일·유사\n비유사",
+    "상표 사용기간, 사용 방법, 사용지역, 거래 범위, 상품 판매량, 광고선전 등을 종합 고려",
+    "좌동(다만, 특정인의 상표라는 인식+부당한 기대이익 유무를 통해 인식도 판단 가능)",
+    "인식도 판단방법",
+    "좌동\n좌동",
+    "시기적 기준",
+    "상표등록여부결정을 할 때",
+    "상표등록출원을한 때",
+    "상표등록여부결정을 할 때",
+    "상표등록출원을한 때",
+    "제척기간\n5년\n없음\n없음\n없음",
+]
 
 
 class ContentGuardrailsTest(unittest.TestCase):
@@ -707,6 +916,172 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertIn('<p>구 분</p>', html)
         self.assertIn('일반상표<br />상표견본 1개<br />임의<br />불필요', html)
         self.assertIn('기타 비시각적 상표', html)
+
+    def test_blocks_to_html_reconstructs_allowlisted_goods_naming_table(self) -> None:
+        blocks = make_text_blocks(GOODS_NAMING_TABLE_BLOCK_TEXTS, page_number=95, page_code="20401")
+
+        html = blocks_to_html(blocks, section_title="1. 지정상품의 기재요령")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertIn('<th scope="col">협의의 포괄명칭</th>', html)
+        self.assertIn('<th scope="col">광의의 포괄명칭</th>', html)
+        self.assertIn('<td>포괄명칭 사례</td>', html)
+        self.assertIn('스포츠전문의류(G430301),<br />겉옷(G450101),<br />한복(G4502),<br />속옷(G4503) 등 포함', html)
+        self.assertLess(html.index('1.1.3 독립적인 거래가 가능한 개별·구체적인 상품명칭을 기재하여야 하지만'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index('1.2 지정상품은 한글로 기재함을 원칙으로 하되'))
+        self.assertEqual(blocks_to_text(blocks), "\n\n".join(GOODS_NAMING_TABLE_BLOCK_TEXTS))
+
+    def test_blocks_to_html_reconstructs_allowlisted_goods_review_tables(self) -> None:
+        blocks = make_text_blocks(GOODS_REVIEW_TABLE_BLOCK_TEXTS, page_number=97, page_code="20403")
+
+        html = blocks_to_html(blocks, section_title="2. 지정상품의 심사")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 2)
+        self.assertEqual(html.count('<table>'), 2)
+        self.assertIn('<th scope="col">구 분</th>', html)
+        self.assertIn('<th scope="col">지정상품</th>', html)
+        self.assertIn('<th scope="col">인정되지 않는 불명확한 명칭</th>', html)
+        self.assertIn('<td>최초출원지정상품</td>', html)
+        self.assertIn('<td>학원경영업</td>', html)
+        self.assertIn('<td>외국어학원경영업, 미술학원경영업, 컴퓨터학원경영업 등</td>', html)
+        self.assertLess(html.index('《지정상품 세분화에 따라 거절이유 해소가 가능한 경우 예시》'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.rindex('reader-synthetic-figure'), html.index('2.2 판단시점'))
+        self.assertEqual(blocks_to_text(blocks), "\n\n".join(GOODS_REVIEW_TABLE_BLOCK_TEXTS))
+
+    def test_blocks_to_html_reconstructs_allowlisted_one_mark_one_application_table(self) -> None:
+        blocks = make_text_blocks(ONE_MARK_ONE_APPLICATION_TABLE_BLOCK_TEXTS, page_number=101, page_code="20502")
+
+        html = blocks_to_html(blocks, section_title="1. 위반유형 및 위반시 처리와 판단시점")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertIn('<th scope="col">1상표 1출원 위반 유형</th>', html)
+        self.assertIn('<th scope="col">심사 처리 방법</th>', html)
+        self.assertIn('<th scope="col">보정방법</th>', html)
+        self.assertIn('포괄상품인 경우(의류)에는 세부상품(바지)으로 감축<br />보정', html)
+        self.assertIn('<td>상표견본 삭제보정</td>', html)
+        self.assertLess(html.index('1.2 1상표 1출원 위반유형에 따른 심사처리방법'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index('1.3 1상표 1출원 위반 여부의 판단시점'))
+        self.assertEqual(blocks_to_text(blocks), "\n\n".join(ONE_MARK_ONE_APPLICATION_TABLE_BLOCK_TEXTS))
+
+    def test_blocks_to_html_reconstructs_allowlisted_filing_requirement_tables(self) -> None:
+        cases = [
+            {
+                "texts": SOUND_FILING_TABLE_BLOCK_TEXTS,
+                "page_number": 491,
+                "page_code": "40302",
+                "section_title": "2. 상표 유형 및 상표의 설명에 대한 심사",
+                "expected": ["<td>소리파일</td>", "<td>규칙 제28조제2항제4호</td>", "<td>선택</td>"],
+            },
+            {
+                "texts": SMELL_FILING_TABLE_BLOCK_TEXTS,
+                "page_number": 497,
+                "page_code": "40402",
+                "section_title": "2. 상표 유형 및 상표의 설명에 대한 심사",
+                "expected": ["<td>냄새견본(밀폐용기, 패치)</td>", "<td>규칙 제28조제2항제5호</td>", "<td>필수</td>"],
+            },
+        ]
+
+        for case in cases:
+            with self.subTest(page_code=case["page_code"]):
+                blocks = make_text_blocks(case["texts"], page_number=case["page_number"], page_code=case["page_code"])
+
+                html = blocks_to_html(blocks, section_title=case["section_title"])
+
+                self.assertEqual(html.count('reader-synthetic-figure'), 1)
+                self.assertEqual(html.count('<table>'), 1)
+                self.assertIn('<th scope="col">제출되는 서류 등의 종류</th>', html)
+                self.assertIn('<th scope="col">관련조항</th>', html)
+                self.assertIn('<th scope="col">필수 여부</th>', html)
+                for expected in case["expected"]:
+                    self.assertIn(expected, html)
+                self.assertEqual(blocks_to_text(blocks), "\n\n".join(case["texts"]))
+
+    def test_blocks_to_html_reconstructs_selected_allowlisted_reference_tables(self) -> None:
+        cases = [
+            {
+                "texts": SMELL_DISTINCTIVENESS_EXAMPLE_BLOCK_TEXTS,
+                "page_number": 499,
+                "page_code": "40404",
+                "section_title": "4. 식별력 유무에 대한 심사",
+                "expected": ["<th scope=\"col\">지정상품</th>", "<td>타이어</td>", "<td>커피향</td>"],
+            },
+            {
+                "texts": FAMOUS_MARK_COMPARISON_BLOCK_TEXTS,
+                "page_number": 285,
+                "page_code": "30704",
+                "section_title": "4. 판단시점",
+                "expected": ["<th scope=\"col\">주지상표</th>", "<td>입법취지</td>", "<td>출처혼동방지 또는 희석화 방지</td>"],
+            },
+            {
+                "texts": FAMOUS_DECEASED_COMPARISON_BLOCK_TEXTS,
+                "page_number": 229,
+                "page_code": "30103",
+                "section_title": "3. 다른 조문과의 관계",
+                "expected": ["<th scope=\"col\">적용조문</th>", "<td>법§34①4</td>", "<td>저명한 타인의 성명이나 그 약칭을 포함하는 경우</td>"],
+            },
+            {
+                "texts": FAITH_COMPARISON_BLOCK_TEXTS,
+                "page_number": 339,
+                "page_code": "31603",
+                "section_title": "3. 다른 조문과의 관계",
+                "expected": ["<th scope=\"col\">법 §34①20</th>", "<th scope=\"col\">법§34①13</th>", "<td>상품 제한 없음(다만, 부정목적 유무 판단을 위해 견련성 검토 필요)</td>"],
+            },
+        ]
+
+        for case in cases:
+            with self.subTest(page_code=case["page_code"]):
+                blocks = make_text_blocks(case["texts"], page_number=case["page_number"], page_code=case["page_code"])
+
+                html = blocks_to_html(blocks, section_title=case["section_title"])
+
+                self.assertIn('reader-synthetic-figure', html)
+                self.assertIn('<table>', html)
+                for expected in case["expected"]:
+                    self.assertIn(expected, html)
+                self.assertEqual(blocks_to_text(blocks), "\n\n".join(case["texts"]))
+
+    def test_blocks_to_html_reconstructs_allowlisted_hologram_filing_table(self) -> None:
+        blocks = make_text_blocks(HOLOGRAM_FILING_TABLE_BLOCK_TEXTS, page_number=477, page_code="40202")
+
+        html = blocks_to_html(blocks, section_title="2. 상표 유형 및 표장에 대한 심사")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertIn('<th scope="col">제출되는 서류 등의 종류</th>', html)
+        self.assertIn('<td>상표견본</td>', html)
+        self.assertIn('출원인 선택<br />규칙 제29조제3항제2호<br />심사관 요구', html)
+        self.assertLess(html.index('《홀로그램상표의 상표등록출원서 기재사항 및 첨부서류 등》'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index('2.3 홀로그램상표를 출원하면서 출원서에 상표견본을 첨부하여 제출하지 않고'))
+        self.assertEqual(blocks_to_text(blocks), "\n\n".join(HOLOGRAM_FILING_TABLE_BLOCK_TEXTS))
+
+    def test_blocks_to_html_reconstructs_allowlisted_bad_faith_comparison_table(self) -> None:
+        blocks = make_text_blocks(BAD_FAITH_COMPARISON_BLOCK_TEXTS, page_number=298, page_code="30903")
+
+        html = blocks_to_html(blocks, section_title="3. 판단시점")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertIn('<th scope="col">법§34①9</th>', html)
+        self.assertIn('<th scope="col">법§34①13</th>', html)
+        self.assertIn('<td>취지</td>', html)
+        self.assertIn('<td>진정한 상표사용자 신용보호, 브로커 방지, 공정한 경쟁질서 확립</td>', html)
+        self.assertIn('<td>비유사(다만, 부정목적 추정을 위해서는 견련성 검토 필요)</td>', html)
+        self.assertIn('<td>제척기간</td>', html)
+        self.assertEqual(blocks_to_text(blocks), "\n\n".join(BAD_FAITH_COMPARISON_BLOCK_TEXTS))
+
+    def test_blocks_to_html_falls_back_for_incomplete_goods_naming_table_cluster(self) -> None:
+        texts = GOODS_NAMING_TABLE_BLOCK_TEXTS[:-2] + GOODS_NAMING_TABLE_BLOCK_TEXTS[-1:]
+        blocks = make_text_blocks(texts, page_number=95, page_code="20401")
+
+        html = blocks_to_html(blocks, section_title="1. 지정상품의 기재요령")
+
+        self.assertNotIn('reader-synthetic-figure', html)
+        self.assertNotIn('<table>', html)
+        self.assertIn('<p>구   분<br />협의의 포괄명칭<br />광의의 포괄명칭</p>', html)
+        self.assertIn('해당하는 상품 또는 유사상품군', html)
+        self.assertIn('(G4503) 등 포함', html)
 
     def test_blocks_to_html_does_not_reconstruct_comparison_tables_outside_allowlisted_section(self) -> None:
         blocks = [
