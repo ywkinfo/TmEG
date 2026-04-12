@@ -261,6 +261,312 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertLess(html.index("앞 문단"), html.index('<figure class="reader-image">'))
         self.assertLess(html.index('<figure class="reader-image">'), html.index("뒤 문단"))
 
+    def test_blocks_to_html_upgrades_month_end_timeline_cluster_to_synthetic_figure(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "앞 설명 문단"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "《마지막 월에 해당일이 없는 경우 기간의 만료일》"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "12월 30일"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "12월 31일"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "2월 28일"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "지정기간 2개월"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "통지서송달일"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "기 산 일"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "지정기간만료"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "2.2.4 상표에 관한 절차에 있어서 기간의 말일이 공휴일에 해당하면 기간은 다음 날로 만료한다."}]}],
+            },
+        ]
+
+        html = blocks_to_html(blocks)
+
+        self.assertIn('reader-synthetic-figure', html)
+        self.assertIn('<figcaption>《마지막 월에 해당일이 없는 경우 기간의 만료일》</figcaption>', html)
+        self.assertIn('<th scope="row">표시</th>', html)
+        self.assertIn('<td>기산일</td>', html)
+        self.assertIn('<th scope="row">날짜</th>', html)
+        self.assertIn('<td>2월 28일</td>', html)
+        self.assertIn('<th scope="row">기간</th><td colspan="3">지정기간 2개월</td>', html)
+        self.assertIn('지정기간 2개월', html)
+        self.assertLess(html.index("앞 설명 문단"), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index("2.2.4 상표에 관한 절차에 있어서"))
+        self.assertEqual(
+            blocks_to_text(blocks),
+            "앞 설명 문단\n\n《마지막 월에 해당일이 없는 경우 기간의 만료일》\n\n12월 30일\n\n12월 31일\n\n2월 28일\n\n지정기간 2개월\n\n통지서송달일\n\n기 산 일\n\n지정기간만료\n\n2.2.4 상표에 관한 절차에 있어서 기간의 말일이 공휴일에 해당하면 기간은 다음 날로 만료한다.",
+        )
+
+    def test_blocks_to_html_upgrades_holiday_extension_timeline_cluster_to_synthetic_figure(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "앞 설명 문단"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "《기간 만료일이 공휴일인 경우 기간연장 기산일》"}]}],
+            },
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "7.20"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "9.19(수)"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "9.20(목)"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "9.24(월)"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "10.19(목)"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "7.19"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "지정 2개월"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "연장기간 1개월"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "연장기간 만료일"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "통지서송달일"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "· 만료일· 연장신청일"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "기산일"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "만료일"}]}]},
+            {"type": 0, "_pageNumber": 46, "_pageCode": "10406", "lines": [{"spans": [{"text": "기간연장 기산일"}]}]},
+            {
+                "type": 0,
+                "_pageNumber": 46,
+                "_pageCode": "10406",
+                "lines": [{"spans": [{"text": "2.2.5 절차에 관한 기간이 아닌 상표권의 존속기간 등은 기간의 말일이 공휴일이라도 그 다음 날까지 연장되지 아니한다."}]}],
+            },
+        ]
+
+        html = blocks_to_html(blocks)
+
+        self.assertIn('reader-synthetic-figure', html)
+        self.assertIn('<figcaption>《기간 만료일이 공휴일인 경우 기간연장 기산일》</figcaption>', html)
+        self.assertIn('<th scope="row">날짜 흐름</th>', html)
+        self.assertIn('7.19 → 7.20 → 9.19(수) → 9.20(목) → 9.24(월) → 10.19(목)', html)
+        self.assertIn('통지서송달일 · 기산일 · 만료일 · 기간연장 기산일 · 만료일 · 연장신청일 · 연장기간 만료일', html)
+        self.assertIn('지정 2개월 · 연장기간 1개월', html)
+        self.assertLess(html.index("앞 설명 문단"), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index("2.2.5 절차에 관한 기간이 아닌"))
+        self.assertEqual(
+            blocks_to_text(blocks),
+            "앞 설명 문단\n\n《기간 만료일이 공휴일인 경우 기간연장 기산일》\n\n7.20\n\n9.19(수)\n\n9.20(목)\n\n9.24(월)\n\n10.19(목)\n\n7.19\n\n지정 2개월\n\n연장기간 1개월\n\n연장기간 만료일\n\n통지서송달일\n\n· 만료일· 연장신청일\n\n기산일\n\n만료일\n\n기간연장 기산일\n\n2.2.5 절차에 관한 기간이 아닌 상표권의 존속기간 등은 기간의 말일이 공휴일이라도 그 다음 날까지 연장되지 아니한다.",
+        )
+
+    def test_blocks_to_html_prepends_synthetic_procedure_figures_for_allowlisted_sections(self) -> None:
+        cases = [
+            {
+                "section_title": "1. 재심사의 청구 요건",
+                "paragraphs": [
+                    "거절결정등본 송달일부터 3개월 이내에 재심사를 청구해야 한다.",
+                    "재심사의 청구와 함께 의견서나 보정서를 제출할 수 있다.",
+                ],
+                "expected": ["<figcaption>1. 재심사의 청구 요건</figcaption>", "거절결정등본 송달일부터 3개월 이내에 재심사를 청구해야 한다.", "거절결정이 있는 상표등록출원이어야 하고 거절결정불복심판 청구가 없어야 한다."],
+            },
+            {
+                "section_title": "2. 보정 승인·각하 판단",
+                "paragraphs": [
+                    "심사관은 보정각하 여부를 먼저 판단한다.",
+                    "보정을 승인한 후 그 내용에 따라 심사한다.",
+                ],
+                "expected": ["<figcaption>2. 보정 승인·각하 판단</figcaption>", "심사관은 보정각하 여부를 먼저 판단한다.", "거절결정, 출원공고 후 등록결정, 또는 새로운 거절이유 통지로 이어질 수 있다."],
+            },
+            {
+                "section_title": "2. 절차보정(법§39)",
+                "paragraphs": [
+                    "절차상 방식 흠결이 있는 경우 절차보정 대상이 된다.",
+                    "적합하게 보정되면 절차가 계속된다.",
+                ],
+                "expected": ["<figcaption>2. 절차보정(법§39)</figcaption>", "심사관은 기간을 정하여 보정을 명하거나 출원인이 자진보정할 수 있다.", "적합하게 보정되면 절차가 계속되고 미보정이면 절차를 무효로 할 수 있다."],
+            },
+            {
+                "section_title": "3. 실체보정(법§40 내지 §41)",
+                "paragraphs": [
+                    "각 절차 단계에서 법이 정한 기간 안에만 실체보정을 할 수 있다.",
+                    "적법한 보정은 최초출원일 기준을 유지한다.",
+                ],
+                "expected": ["<figcaption>3. 실체보정(법§40 내지 §41)</figcaption>", "출원공고 전후, 거절이유통지 후, 거절불복심판 후, 재심사 청구 시 등 단계별로 보정 가능성이 달라진다.", "적법한 보정은 최초출원일 기준을 유지하고 부적법한 보정은 반려되거나 요지변경 판단으로 이어진다."],
+            },
+            {
+                "section_title": "1. 직권보정의 시기··········",
+                "paragraphs": [
+                    "원칙적으로 출원공고결정을 할 때에 직권보정이 가능하다.",
+                    "심사관은 직권보정하면서 출원공고할 수 있다.",
+                ],
+                "expected": ["<figcaption>1. 직권보정의 시기</figcaption>", "출원공고결정을 할 때 직권보정이 가능하다.", "심사관은 직권보정하면서 출원공고할 수 있다."],
+            },
+            {
+                "section_title": "3. 직권보정사항의 통보 및 의견제출기회 부여··········",
+                "paragraphs": [
+                    "출원인은 출원공고기간 내에 의견서를 제출할 수 있다.",
+                    "의견서가 제출되면 해당 직권보정 사항은 처음부터 없었던 것으로 본다.",
+                ],
+                "expected": ["<figcaption>3. 직권보정사항의 통보 및 의견제출기회 부여</figcaption>", "직권보정 사항을 결정서와 상표공보에 기재해 출원인에게 알린다.", "심사관은 직권보정 전 내용으로 재심사한다."],
+            },
+            {
+                "section_title": "4. 잘못된 직권보정의 무효",
+                "paragraphs": [
+                    "심사관의 직권보정이 명백히 잘못된 경우다.",
+                ],
+                "expected": ["<figcaption>4. 잘못된 직권보정의 무효</figcaption>", "직권보정이 명백히 잘못된 경우다.", "그 직권보정은 처음부터 없었던 것으로 본다."],
+            },
+            {
+                "section_title": "1. 분할출원의 요건심사",
+                "paragraphs": [
+                    "출원의 분할은 현재 출원 계속중인 출원이어야 한다.",
+                    "원상표등록출원서의 상표와 분할출원서의 상표가 동일하여야 한다.",
+                ],
+                "expected": ["<figcaption>1. 분할출원의 요건심사</figcaption>", "현재 출원 계속 중이어야 하고 실체보정 가능기간 이내에 분할해야 한다.", "원출원 지정상품 범위 내에서만 분할할 수 있다."],
+            },
+            {
+                "section_title": "2. 부적법한 분할출원에 대한 처리",
+                "paragraphs": [
+                    "보정기간이 지난 뒤 제출된 분할출원은 반려한다.",
+                    "미해소 시 분할출원일 기준 신규출원으로 심사한다.",
+                ],
+                "expected": ["<figcaption>2. 부적법한 분할출원에 대한 처리</figcaption>", "실질적 확장, 삭제 미보정, 출원인 또는 상표견본 불일치 등이 있으면 불인정예고통지를 한다.", "원출원 거절결정 확정 시점에 따라 최초출원일 인정 여부가 달라질 수 있다."],
+            },
+            {
+                "section_title": "3. 분할출원의 효과",
+                "paragraphs": [
+                    "적법한 분할출원은 최초출원일에 출원한 것으로 본다.",
+                    "분할출원은 원출원과 별개 출원이다.",
+                ],
+                "expected": ["<figcaption>3. 분할출원의 효과</figcaption>", "적법한 분할출원은 최초출원일에 출원한 것으로 본다.", "분할출원은 원출원과 별개 출원이므로 처음부터 다시 심사한다."],
+            },
+            {
+                "section_title": "1. 변경출원의 요건심사",
+                "paragraphs": [
+                    "최초출원의 등록여부결정 또는 심결이 확정되기 전에 변경해야 한다.",
+                    "최초출원과 변경출원의 목적물이 동일해야 한다.",
+                ],
+                "expected": ["<figcaption>1. 변경출원의 요건심사</figcaption>", "기초 등록상표에 무효·취소 심판이 청구되었거나 소멸된 경우에는 변경할 수 없다.", "공동출원은 공유자 전원이 공동으로 해야 한다."],
+            },
+            {
+                "section_title": "3. 변경출원의 효과",
+                "paragraphs": [
+                    "변경출원은 최초출원일에 출원한 것으로 본다.",
+                    "최초출원은 취하된 것으로 본다.",
+                ],
+                "expected": ["<figcaption>3. 변경출원의 효과</figcaption>", "우선권 주장과 출원시 특례는 변경출원일 기준으로 적용한다.", "변경출원이 있으면 최초출원은 취하된 것으로 본다."],
+            },
+            {
+                "section_title": "4. 부적법한 변경출원에 대한 처리",
+                "paragraphs": [
+                    "확정 이후의 변경출원은 반려한다.",
+                    "변경 전 최초출원으로 심사를 계속 진행한다.",
+                ],
+                "expected": ["<figcaption>4. 부적법한 변경출원에 대한 처리</figcaption>", "실질적 확장, 출원인 불일치, 상표견본 불일치 등이 있으면 변경출원불인정예고통지를 한다.", "분할출원과 달리 변경 전 최초출원으로 심사를 계속 진행한다."],
+            },
+            {
+                "section_title": "1. 요지변경이 아닌 경우",
+                "paragraphs": [
+                    "지정상품 범위의 감축은 요지변경이 아니다.",
+                    "명백한 오기의 정정은 요지변경이 아니다.",
+                ],
+                "expected": ["<figcaption>1. 요지변경이 아닌 경우</figcaption>", "불명료한 기재를 석명하는 보정은 요지변경이 아니다.", "상표의 부기적 부분을 삭제하는 보정은 요지변경이 아니다."],
+            },
+            {
+                "section_title": "4. 요지변경인 경우의 처리",
+                "paragraphs": [
+                    "보정이 요지변경에 해당하면 보정각하결정을 하여야 한다.",
+                    "보정각하결정에 대해서는 3개월 이내에 불복심판을 청구할 수 있다.",
+                ],
+                "expected": ["<figcaption>4. 요지변경인 경우의 처리</figcaption>", "불복 가능 기간이 지나거나 심판 결과가 확정될 때까지 심사나 심판을 중지한다.", "불복이 불가능한 경우에는 해당 절차를 계속 진행한다."],
+            },
+            {
+                "section_title": "5. 요지변경임이 간과된 등록상표의 효력",
+                "paragraphs": [
+                    "송달 전에 간과되었으면 보정서를 제출한 때에 출원한 것으로 본다.",
+                    "송달 후에 간과되었으면 보정 전의 상표출원으로 상표권이 설정등록된 것으로 본다.",
+                ],
+                "expected": ["<figcaption>5. 요지변경임이 간과된 등록상표의 효력</figcaption>", "요지변경 보정이 간과된 시점이 출원공고결정등본 송달 전인지 후인지가 중요하다.", "사후 효력 판단은 간과된 요지변경 전후 중 어느 출원을 기준으로 볼지에 따라 갈린다."],
+            },
+        ]
+
+        for case in cases:
+            with self.subTest(section_title=case["section_title"]):
+                blocks = [
+                    {
+                        "type": 0,
+                        "_pageNumber": 144,
+                        "_pageCode": "30302",
+                        "lines": [{"spans": [{"text": paragraph}]}],
+                    }
+                    for paragraph in case["paragraphs"]
+                ]
+
+                html = blocks_to_html(blocks, section_title=case["section_title"])
+
+                self.assertIn("reader-synthetic-figure", html)
+                for expected_text in case["expected"]:
+                    self.assertIn(expected_text, html)
+                self.assertLess(html.index("reader-synthetic-figure"), html.index(case["paragraphs"][0]))
+                self.assertEqual(blocks_to_text(blocks), "\n\n".join(case["paragraphs"]))
+
+    def test_blocks_to_html_does_not_prepend_synthetic_procedure_figure_for_normal_section(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 200,
+                "_pageCode": "40101",
+                "lines": [{"spans": [{"text": "이 절은 일반 설명 문단이다."}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 200,
+                "_pageCode": "40101",
+                "lines": [{"spans": [{"text": "다음 문단도 일반 본문으로 이어진다."}]}],
+            },
+        ]
+
+        html = blocks_to_html(blocks, section_title="1. 정보제공의 요건")
+
+        self.assertNotIn("reader-synthetic-figure", html)
+        self.assertIn("이 절은 일반 설명 문단이다.", html)
+        self.assertIn("다음 문단도 일반 본문으로 이어진다.", html)
+        self.assertEqual(blocks_to_text(blocks), "이 절은 일반 설명 문단이다.\n\n다음 문단도 일반 본문으로 이어진다.")
+
     def test_blocks_to_text_reflows_soft_wrapped_lines_and_strips_running_headers(self) -> None:
         blocks = [
             {
