@@ -1,6 +1,6 @@
 {
   "title": "상표심사기준",
-  "syncedAt": "2026-04-12T02:12:34.185257+00:00",
+  "syncedAt": "2026-04-12T02:37:03.439010+00:00",
   "fileCount": 6,
   "imageFileCount": 256,
   "files": [
@@ -19,26 +19,26 @@
     {
       "name": "document-data.json",
       "relativePath": "public/generated/document-data.json",
-      "bytes": 1104324,
-      "modifiedAt": "2026-04-12T02:12:33.719100+00:00"
+      "bytes": 1217609,
+      "modifiedAt": "2026-04-12T02:37:02.941841+00:00"
     },
     {
       "name": "search-index.json",
       "relativePath": "public/generated/search-index.json",
-      "bytes": 1173604,
-      "modifiedAt": "2026-04-12T02:12:33.726397+00:00"
+      "bytes": 1278402,
+      "modifiedAt": "2026-04-12T02:37:02.950468+00:00"
     },
     {
       "name": "exploration-index.json",
       "relativePath": "public/generated/exploration-index.json",
-      "bytes": 253795,
-      "modifiedAt": "2026-04-12T02:12:33.728732+00:00"
+      "bytes": 256808,
+      "modifiedAt": "2026-04-12T02:37:02.953746+00:00"
     },
     {
       "name": "coverage-report.json",
       "relativePath": "public/generated/coverage-report.json",
-      "bytes": 464,
-      "modifiedAt": "2026-04-12T02:12:33.728935+00:00"
+      "bytes": 463,
+      "modifiedAt": "2026-04-12T02:37:02.954133+00:00"
     }
   ]
 }

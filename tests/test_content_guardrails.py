@@ -14,6 +14,7 @@ build_inventory_page_map = build_content.build_inventory_page_map
 build_next_chapter_start_map = build_content.build_next_chapter_start_map
 build_next_part_map = build_content.build_next_part_map
 cap_entry_end_page = build_content.cap_entry_end_page
+extend_end_page_for_next_sibling = build_content.extend_end_page_for_next_sibling
 find_appendix_boundary_page = build_content.find_appendix_boundary_page
 find_next_part_boundary_page = build_content.find_next_part_boundary_page
 is_appendix_boundary_page = build_content.is_appendix_boundary_page
@@ -767,6 +768,63 @@ class ContentGuardrailsTest(unittest.TestCase):
 
         self.assertEqual(blocks_to_text(sliced), "2.1 무능력자의 행위능력\n\n행위능력 본문")
 
+    def test_slice_entry_blocks_keeps_cross_page_continuation_before_next_title(self) -> None:
+        chapter_entries = [
+            {
+                "entryType": "item",
+                "sectionTitle": "1. 권리능력",
+            },
+            {
+                "entryType": "item",
+                "sectionTitle": "2. 행위능력",
+            },
+        ]
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 28,
+                "bbox": (10, 80, 160, 100),
+                "lines": [{"spans": [{"text": "1. 권리능력"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 29,
+                "bbox": (10, 100, 420, 120),
+                "lines": [{"spans": [{"text": "- 지정상품 : 전부※ 다만, ㅇㅇ협회가 비법인단체로서 권리능력이 없어 상표등록을 받을 수 없는 경우라면 ➀ 비법인단체라는 점과 ➁ 출원인이 등록받더라도 비법인단체와 출처의 오인·혼동의"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 30,
+                "bbox": (10, 100, 260, 120),
+                "lines": [{"spans": [{"text": "우려가 없다는 점이 인정될 경우 등록이 가능합니다."}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 30,
+                "bbox": (10, 130, 220, 150),
+                "lines": [{"spans": [{"text": "1.6 외국인의 권리능력"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 30,
+                "bbox": (10, 220, 160, 240),
+                "lines": [{"spans": [{"text": "2. 행위능력"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 30,
+                "bbox": (10, 250, 220, 270),
+                "lines": [{"spans": [{"text": "2.1 무능력자의 행위능력"}]}],
+            },
+        ]
+
+        sliced = slice_entry_blocks(blocks, chapter_entries[0], chapter_entries[1:])
+        text = blocks_to_text(sliced)
+
+        self.assertIn("우려가 없다는 점이 인정될 경우 등록이 가능합니다.", text)
+        self.assertIn("1.6 외국인의 권리능력", text)
+        self.assertNotIn("2.1 무능력자의 행위능력", text)
+
     def test_build_next_chapter_start_map_tracks_following_chapter_boundaries(self) -> None:
         chapters = [
             {"slug": "chapter-a", "pageStart": 123},
@@ -784,6 +842,22 @@ class ContentGuardrailsTest(unittest.TestCase):
         capped_end = cap_entry_end_page(entry, 159)
 
         self.assertEqual(capped_end, 158)
+
+    def test_extend_end_page_for_next_sibling_allows_one_page_overlap(self) -> None:
+        entry = {"entryType": "item", "pageEnd": 29}
+        following_entry = {"pageStart": 30}
+
+        extended_end = extend_end_page_for_next_sibling(entry, following_entry, 29)
+
+        self.assertEqual(extended_end, 30)
+
+    def test_extend_end_page_for_next_sibling_respects_structural_caps(self) -> None:
+        entry = {"entryType": "item", "pageEnd": 29}
+        following_entry = {"pageStart": 30}
+
+        extended_end = extend_end_page_for_next_sibling(entry, following_entry, 28)
+
+        self.assertEqual(extended_end, 28)
 
     def test_find_next_part_boundary_page_detects_standalone_marker_page(self) -> None:
         page_blocks = {
