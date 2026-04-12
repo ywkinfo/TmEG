@@ -647,6 +647,27 @@ def cap_entry_end_page(
     return min(candidates)
 
 
+def extend_end_page_for_next_sibling(
+    entry: dict[str, Any],
+    following_entry: dict[str, Any] | None,
+    structural_end_page: int | None,
+) -> int | None:
+    if structural_end_page is None:
+        return None
+    if entry["entryType"] == "overview" or following_entry is None:
+        return structural_end_page
+
+    nominal_end_page = entry.get("pageEnd")
+    following_start_page = following_entry.get("pageStart")
+    if nominal_end_page is None or following_start_page is None:
+        return structural_end_page
+    if structural_end_page != nominal_end_page:
+        return structural_end_page
+    if following_start_page <= structural_end_page:
+        return structural_end_page
+    return following_start_page
+
+
 def main() -> None:
     config = load_config()
     inventory = load_generated_json("pdf-inventory.json")
@@ -774,6 +795,7 @@ def main() -> None:
 
     for chapter_slug, chapter_entries in section_entries_by_chapter.items():
         for index, entry in enumerate(chapter_entries):
+            following_entry = chapter_entries[index + 1] if index + 1 < len(chapter_entries) else None
             next_part_boundary_page = find_next_part_boundary_page(
                 page_blocks,
                 entry["pageStart"],
@@ -785,6 +807,11 @@ def main() -> None:
                 entry,
                 next_chapter_start_by_slug.get(chapter_slug),
                 next_part_boundary_page,
+            )
+            effective_end_page = extend_end_page_for_next_sibling(
+                entry,
+                following_entry,
+                effective_end_page,
             )
             if entry["entryType"] == "overview" and len(chapter_entries) == 1:
                 appendix_boundary_page = find_appendix_boundary_page(
