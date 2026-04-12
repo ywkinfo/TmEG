@@ -153,6 +153,10 @@ def count_content_images(blocks: list[dict[str, Any]]) -> int:
     return sum(1 for block in blocks if block.get("type") == 1)
 
 
+def count_html_images(html: str) -> int:
+    return len(re.findall(r"<img\b", html or ""))
+
+
 def build_image_manifest_lookup(image_manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {image["id"]: image for image in image_manifest.get("images", [])}
 
@@ -915,7 +919,7 @@ def main() -> None:
             )
             entry["excerpt"] = make_excerpt(entry_text)
             entry["categories"] = classify_entry(entry)
-            entry["imageCount"] = count_content_images(entry_blocks)
+            entry["imageCount"] = count_html_images(entry["html"])
             entry["hasImage"] = entry["imageCount"] > 0
 
     built_chapters: list[dict[str, Any]] = []
