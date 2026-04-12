@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import unittest
+from unittest import mock
 
 from pipeline.build_images import (
     DEFAULT_IMAGE_EXCLUSION,
+    TIMELINE_CROP_IMAGE_SPECS,
+    build_region_asset,
     build_manifest_entries,
     is_decorative_page,
     load_image_exclusion,
@@ -79,6 +82,28 @@ class BuildImagesTest(unittest.TestCase):
             set(entries[0]),
             {"id", "filename", "relativePath", "pageNumbers", "pageCodes", "width", "height", "byteSize"},
         )
+
+    def test_build_region_asset_uses_spec_metadata_and_png_bytes(self) -> None:
+        spec = TIMELINE_CROP_IMAGE_SPECS["《마지막 월에 해당일이 없는 경우 기간의 만료일》"]
+        page = mock.Mock()
+        pixmap = mock.Mock(width=840, height=320)
+        pixmap.tobytes.return_value = b"png-bytes"
+        page.get_pixmap.return_value = pixmap
+
+        document = mock.Mock()
+        document.load_page.return_value = page
+
+        asset = build_region_asset(document, spec)
+
+        self.assertEqual(asset["id"], "3d4c8a2e7b9f")
+        self.assertEqual(asset["filename"], "3d4c8a2e7b9f.png")
+        self.assertEqual(asset["relativePath"], "images/3d4c8a2e7b9f.png")
+        self.assertEqual(asset["_pageCodes"], ["10406"])
+        self.assertEqual(asset["_pageNumbers"], [46])
+        self.assertEqual(asset["width"], 840)
+        self.assertEqual(asset["height"], 320)
+        self.assertEqual(asset["byteSize"], len(b"png-bytes"))
+        page.get_pixmap.assert_called_once()
 
 
 if __name__ == "__main__":

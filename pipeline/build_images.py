@@ -8,7 +8,16 @@ from typing import Any
 
 import pymupdf
 
-from .common import GENERATED_DIR, load_config, load_generated_json, open_pdf, print_json_summary, write_json
+from .common import (
+    GENERATED_DIR,
+    SYNTHETIC_TIMELINE_SPECS,
+    clean_title,
+    load_config,
+    load_generated_json,
+    open_pdf,
+    print_json_summary,
+    write_json,
+)
 
 
 GENERATED_IMAGES_DIR = GENERATED_DIR / "images"
@@ -20,6 +29,20 @@ DEFAULT_IMAGE_EXCLUSION = {
     "decorativePageMinImageCount": 2,
 }
 PRESERVED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg"}
+TIMELINE_CROP_IMAGE_SPECS = {
+    clean_title("《마지막 월에 해당일이 없는 경우 기간의 만료일》"): {
+        "filename": "3d4c8a2e7b9f.png",
+        "pageNumber": 46,
+        "pageCode": "10406",
+        "rect": (60.0, 98.0, 480.0, 260.0),
+    },
+    clean_title("《기간 만료일이 공휴일인 경우 기간연장 기산일》"): {
+        "filename": "7f0f56d996ca.png",
+        "pageNumber": 46,
+        "pageCode": "10406",
+        "rect": (60.0, 358.0, 480.0, 535.0),
+    },
+}
 
 
 def load_image_exclusion(config: dict[str, Any]) -> dict[str, Any]:
@@ -200,6 +223,41 @@ def build_manifest_entries(assets_by_hash: dict[str, dict[str, Any]]) -> list[di
     return entries
 
 
+def build_region_asset(
+    document: pymupdf.Document,
+    spec: dict[str, Any],
+    *,
+    scale: float = 2.0,
+) -> dict[str, Any]:
+    page_number = int(spec["pageNumber"])
+    page = document.load_page(page_number - 1)
+    rect = pymupdf.Rect(*spec["rect"])
+    pixmap = page.get_pixmap(matrix=pymupdf.Matrix(scale, scale), clip=rect, alpha=False)
+    image_bytes = pixmap.tobytes("png")
+    filename = str(spec["filename"])
+    return {
+        "id": Path(filename).stem,
+        "filename": filename,
+        "relativePath": f"images/{filename}",
+        "width": pixmap.width,
+        "height": pixmap.height,
+        "byteSize": len(image_bytes),
+        "_bytes": image_bytes,
+        "_pageNumbers": [page_number],
+        "_pageCodes": [str(spec["pageCode"])],
+    }
+
+
+def collect_region_assets(document: pymupdf.Document) -> dict[str, dict[str, Any]]:
+    assets: dict[str, dict[str, Any]] = {}
+    for title, spec in TIMELINE_CROP_IMAGE_SPECS.items():
+        if title not in SYNTHETIC_TIMELINE_SPECS:
+            continue
+        asset = build_region_asset(document, spec)
+        assets[asset["id"]] = asset
+    return assets
+
+
 def main() -> None:
     config = load_config()
     exclusion = load_image_exclusion(config)
@@ -280,6 +338,9 @@ def main() -> None:
         assets_by_hash,
         exclusion["maxPageRepetitions"],
     )
+
+    for region_id, region_asset in collect_region_assets(document).items():
+        assets_by_hash[region_id] = region_asset
 
     for asset in assets_by_hash.values():
         (GENERATED_IMAGES_DIR / asset["filename"]).write_bytes(asset["_bytes"])
