@@ -10,7 +10,6 @@ import pymupdf
 
 from .common import (
     GENERATED_DIR,
-    SYNTHETIC_TIMELINE_SPECS,
     clean_title,
     load_config,
     load_generated_json,
@@ -41,6 +40,12 @@ TIMELINE_CROP_IMAGE_SPECS = {
         "pageNumber": 46,
         "pageCode": "10406",
         "rect": (60.0, 358.0, 480.0, 535.0),
+    },
+    clean_title("《지정상품 심사 판단시점 : 출원시》"): {
+        "filename": "da51bb42fb7e.png",
+        "pageNumber": 99,
+        "pageCode": "20405",
+        "rect": (60.0, 490.0, 478.0, 652.0),
     },
 }
 
@@ -251,8 +256,6 @@ def build_region_asset(
 def collect_region_assets(document: pymupdf.Document) -> dict[str, dict[str, Any]]:
     assets: dict[str, dict[str, Any]] = {}
     for title, spec in TIMELINE_CROP_IMAGE_SPECS.items():
-        if title not in SYNTHETIC_TIMELINE_SPECS:
-            continue
         asset = build_region_asset(document, spec)
         assets[asset["id"]] = asset
     return assets
