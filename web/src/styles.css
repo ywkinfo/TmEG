@@ -529,6 +529,21 @@ code {
   height: auto;
 }
 
+.reader-article .reader-synthetic-table-image-cell {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.reader-article .reader-synthetic-table-image-cell img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.reader-article .reader-synthetic-table-image-label {
+  font-size: 0.95rem;
+}
+
 .reader-article table {
   width: 100%;
   border-collapse: collapse;

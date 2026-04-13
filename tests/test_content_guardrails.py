@@ -120,6 +120,19 @@ def make_image_block(
     }
 
 
+def make_descriptive_mark_example_table_blocks() -> list[dict[str, object]]:
+    blocks = make_text_blocks(DESCRIPTIVE_MARK_EXAMPLE_TABLE_TEXTS[:9], page_number=170, page_code="40302")
+    blocks.append(
+        make_image_block(
+            page_number=170,
+            page_code="40302",
+            relative_path="generated/images/1cba0ffe8d7e.jpeg",
+        )
+    )
+    blocks.extend(make_text_blocks(DESCRIPTIVE_MARK_EXAMPLE_TABLE_TEXTS[9:], page_number=170, page_code="40302"))
+    return blocks
+
+
 def make_mark_type_table_blocks(*, extra_texts: list[str] | None = None, truncate_after: int | None = None) -> list[dict[str, object]]:
     texts = MARK_TYPE_TABLE_BLOCK_TEXTS.copy()
     if truncate_after is not None:
@@ -235,6 +248,44 @@ INDIRECT_SUGGESTIVE_EXAMPLE_TABLE_BLOCK_TEXTS = [
     "프린터용 잉크",
     "BLUEMARK(2009허7345)",
     "1.1.2 외국어사전이나 전문용어사전 등에 수록된 의미 중 일반수요자들에게 널리 알려진 의미를 기준으로 판단하고, 그 의미만으로 지정상품의 성질을 명확하게 나타내는 경우 직접적으로 표시하는 것으로 본다. 한편, 사전에 수록되어 있지 않더라도 인터넷 등에서 성질표시에 해당하는 특정한 의미로 널리 사용되고 있는 경우에는 원칙적으로 이에 해당하는 것으로 본다.",
+]
+
+DESCRIPTIVE_MARK_EXAMPLE_TABLE_TEXTS = [
+    "1.1.2 외국어사전이나 전문용어사전 등에 수록된 의미 중 일반수요자들에게 널리 알려진 의미를 기준으로 판단하고, 그 의미만으로 지정상품의 성질을 명확하게 나타내는 경우 직접적으로 표시하는 것으로 본다. 한편, 사전에 수록되어 있지 않더라도 인터넷 등에서 성질표시에 해당하는 특정한 의미로 널리 사용되고 있는 경우에는 원칙적으로 이에 해당하는 것으로 본다.",
+    "《성질표시 사례》",
+    "상표(지정상품)\n판 단 내 용\n관련판례",
+    "“PNEUMO”는 ‘폐렴’, “SHIELD”는 ‘보호, 방패’를 의미하므로 주거래자인 의사, 약사를 기준으로 “폐렴예방백신”으로 용도·효능을 직감",
+    "PNEUMOSHIELD",
+    "2000후",
+    "(인체용폐렴백신)",
+    "2170",
+    "‘지구(환경) 친화적인 제품’ 내지 ‘친환경 제품’이라는 등의 의미로 해석되므로 지정상품에 사용될 경우 그 의미가 직접적으로 인식됨",
+    "2018허1783",
+    "(세탁용 세제)",
+    "1.1.3 약칭이나 이니셜은 그 약칭이나 이니셜이 직접적인 성질표시로 인식될 경우 이에 해당하는 것으로 본다. 다만, 직접적인 성질표시로 인식되지 않거나 간접적으로 암시하는 경우에는 이에 해당하지 않는 것으로 본다.",
+]
+
+FOREIGN_DESCRIPTIVE_MARK_TABLE_BLOCK_TEXTS = [
+    "2.3 성질표시를 영어, 한자 등 외국어로 표시한 경우에도 이에 해당하는 것으로 보며, 국내 일반수요자들이 쉽게 인식할 수 있는 영어단어와 극히 유사하여 두 단어가 동일 또는 유사한 의미를 지닌 단어 정도로 그리 어렵지 않게 인식할 수 있는 경우에도 이에 해당하는 것으로 본다.",
+    "《외국어 성질표시 사례》",
+    "상표(지정상품)\n판 단 내 용\n관련판례HABITAT FOR HUMANITY(빈곤자를 위한 주택건축수리업)",
+    "“HABITAT”가  일반인에게 널리 알려져 있지 않지만 객관적 의미가 그런 뜻이므로 거래사회에서는 직접적인 성질표시로 볼 것임",
+    "1997후3296",
+    "“마끼에(maquillée)”는 불어로 ‘화장하는’ 의미, 미용업계에서 ‘메이크업, 웨딩화장업’으로 사용하고 있는 이상, 효능·용도표시 등에 해당",
+    "2011허10474",
+    "maquillée(미용실업)",
+    "《쉽게 인식할 수 있는 영어단어와 극히 유사한 경우 예시》",
+]
+
+ENGLISH_LOOKALIKE_TABLE_BLOCK_TEXTS = [
+    "《쉽게 인식할 수 있는 영어단어와 극히 유사한 경우 예시》",
+    "지정상품\n상    표\n지정상품\n상    표",
+    "신용카드업",
+    "EasiCard",
+    "(EASYCARD의 변형)",
+    "자동차",
+    "AUTOMATIQUE(AUTOMATIC의 변형)",
+    "2.4 성질표시적 표장 상호간에 결합된 표장에 대해서도 원칙적으로 본호를 적용한다.",
 ]
 
 YOJI_CHANGE_EXAMPLE_TABLE_BLOCK_TEXTS = [
@@ -1151,6 +1202,69 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertLess(html.index('reader-synthetic-figure'), html.index('1.1.2 외국어사전이나 전문용어사전'))
         self.assertEqual(blocks_to_text(blocks), "\n\n".join(INDIRECT_SUGGESTIVE_EXAMPLE_TABLE_BLOCK_TEXTS))
 
+    def test_blocks_to_html_reconstructs_allowlisted_descriptive_mark_example_table_with_image_cell(self) -> None:
+        blocks = make_descriptive_mark_example_table_blocks()
+
+        html = blocks_to_html(blocks, section_title="1. 적용요건")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertNotIn('<figure class="reader-image">', html)
+        self.assertIn('<th scope="col">상표(지정상품)</th>', html)
+        self.assertIn('<th scope="col">판단 내용</th>', html)
+        self.assertIn('<th scope="col">관련판례</th>', html)
+        self.assertIn('<td>PNEUMOSHIELD<br />(인체용폐렴백신)</td>', html)
+        self.assertIn('<td>2000후<br />2170</td>', html)
+        self.assertIn('reader-synthetic-table-image-cell', html)
+        self.assertIn('generated/images/1cba0ffe8d7e.jpeg', html)
+        self.assertIn('alt="EARTH FRIENDLY PRODUCTS"', html)
+        self.assertIn('<div class="reader-synthetic-table-image-label">(세탁용 세제)</div>', html)
+        self.assertIn('<td>2018허1783</td>', html)
+        self.assertLess(html.index('《성질표시 사례》'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index('1.1.3 약칭이나 이니셜은'))
+        self.assertEqual(
+            blocks_to_text(blocks),
+            "\n\n".join(text for text in DESCRIPTIVE_MARK_EXAMPLE_TABLE_TEXTS if text),
+        )
+
+    def test_blocks_to_html_reconstructs_allowlisted_foreign_descriptive_mark_table(self) -> None:
+        blocks = make_text_blocks(FOREIGN_DESCRIPTIVE_MARK_TABLE_BLOCK_TEXTS, page_number=171, page_code="40303")
+
+        html = blocks_to_html(blocks, section_title="2. 판단시 유의사항")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertIn('<th scope="col">상표(지정상품)</th>', html)
+        self.assertIn('<th scope="col">판단 내용</th>', html)
+        self.assertIn('<th scope="col">관련판례</th>', html)
+        self.assertIn('<td>HABITAT FOR HUMANITY<br />(빈곤자를 위한 주택건축수리업)</td>', html)
+        self.assertIn('<td>1997후3296</td>', html)
+        self.assertIn('<td>maquillée<br />(미용실업)</td>', html)
+        self.assertIn('<td>2011허10474</td>', html)
+        self.assertLess(html.index('《외국어 성질표시 사례》'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index('《쉽게 인식할 수 있는 영어단어와 극히 유사한 경우 예시》'))
+        self.assertEqual(
+            blocks_to_text(blocks),
+            "\n\n".join(FOREIGN_DESCRIPTIVE_MARK_TABLE_BLOCK_TEXTS),
+        )
+
+    def test_blocks_to_html_reconstructs_allowlisted_english_lookalike_table(self) -> None:
+        blocks = make_text_blocks(ENGLISH_LOOKALIKE_TABLE_BLOCK_TEXTS, page_number=171, page_code="40303")
+
+        html = blocks_to_html(blocks, section_title="2. 판단시 유의사항")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertIn('<th scope="col">지정상품</th>', html)
+        self.assertIn('<th scope="col">상    표</th>', html)
+        self.assertIn('<td>신용카드업</td>', html)
+        self.assertIn('<td>EasiCard<br />(EASYCARD의 변형)</td>', html)
+        self.assertIn('<td>자동차</td>', html)
+        self.assertIn('<td>AUTOMATIQUE<br />(AUTOMATIC의 변형)</td>', html)
+        self.assertLess(html.index('《쉽게 인식할 수 있는 영어단어와 극히 유사한 경우 예시》'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index('2.4 성질표시적 표장 상호간에 결합된 표장에 대해서도 원칙적으로 본호를 적용한다.'))
+        self.assertEqual(blocks_to_text(blocks), "\n\n".join(ENGLISH_LOOKALIKE_TABLE_BLOCK_TEXTS))
+
     def test_blocks_to_html_reconstructs_allowlisted_yoji_change_example_table(self) -> None:
         blocks = make_text_blocks(YOJI_CHANGE_EXAMPLE_TABLE_BLOCK_TEXTS, page_number=137, page_code="30207")
 
@@ -1464,6 +1578,44 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertIn('<p>지정상품<br />상    표<br />지정상품<br />상    표</p>', html)
         self.assertIn('SMART &amp; SOFT(1996후1729)', html)
         self.assertIn('QUEEN(2009후2098)', html)
+
+    def test_blocks_to_html_falls_back_for_incomplete_descriptive_mark_example_table_cluster(self) -> None:
+        blocks = make_descriptive_mark_example_table_blocks()
+        incomplete_blocks = blocks[:-2] + blocks[-1:]
+
+        html = blocks_to_html(incomplete_blocks, section_title="1. 적용요건")
+
+        self.assertNotIn('reader-synthetic-figure', html)
+        self.assertNotIn('<table>', html)
+        self.assertIn('<p>상표(지정상품)<br />판 단 내 용<br />관련판례</p>', html)
+        self.assertIn('PNEUMOSHIELD', html)
+        self.assertIn('<figure class="reader-image">', html)
+        self.assertIn('generated/images/1cba0ffe8d7e.jpeg', html)
+        self.assertIn('2018허1783', html)
+
+    def test_blocks_to_html_falls_back_for_incomplete_foreign_descriptive_mark_table_cluster(self) -> None:
+        texts = FOREIGN_DESCRIPTIVE_MARK_TABLE_BLOCK_TEXTS[:-2] + FOREIGN_DESCRIPTIVE_MARK_TABLE_BLOCK_TEXTS[-1:]
+        blocks = make_text_blocks(texts, page_number=171, page_code="40303")
+
+        html = blocks_to_html(blocks, section_title="2. 판단시 유의사항")
+
+        self.assertNotIn('reader-synthetic-figure', html)
+        self.assertNotIn('<table>', html)
+        self.assertIn('HABITAT FOR HUMANITY', html)
+        self.assertIn('1997후3296', html)
+        self.assertNotIn('maquillée(미용실업)', html)
+
+    def test_blocks_to_html_falls_back_for_incomplete_english_lookalike_table_cluster(self) -> None:
+        texts = ENGLISH_LOOKALIKE_TABLE_BLOCK_TEXTS[:-2] + ENGLISH_LOOKALIKE_TABLE_BLOCK_TEXTS[-1:]
+        blocks = make_text_blocks(texts, page_number=171, page_code="40303")
+
+        html = blocks_to_html(blocks, section_title="2. 판단시 유의사항")
+
+        self.assertNotIn('reader-synthetic-figure', html)
+        self.assertNotIn('<table>', html)
+        self.assertIn('<p>지정상품<br />상    표<br />지정상품<br />상    표</p>', html)
+        self.assertIn('EasiCard', html)
+        self.assertNotIn('AUTOMATIQUE', html)
 
     def test_blocks_to_html_does_not_reconstruct_comparison_tables_outside_allowlisted_section(self) -> None:
         blocks = [
