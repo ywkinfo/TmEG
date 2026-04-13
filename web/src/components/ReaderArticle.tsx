@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import type { ReaderChapter } from "../lib/generated-data";
 import { formatDateTime, formatPageRange, stripGuideDots } from "../lib/formatters";
+import { enhanceReaderHtml } from "../lib/reader-html";
 
 type ReaderArticleProps = {
   chapter: ReaderChapter;
@@ -32,6 +33,7 @@ export function ReaderArticle({ chapter, activeSectionId, builtAt }: ReaderArtic
   const headingDepthById = useMemo(() => {
     return new Map(chapter.headings.map((heading) => [heading.id, heading.depth]));
   }, [chapter.headings]);
+  const enhancedHtml = useMemo(() => enhanceReaderHtml(chapter.html), [chapter.html]);
 
   useEffect(() => {
     const articleNode = articleRef.current;
@@ -66,7 +68,7 @@ export function ReaderArticle({ chapter, activeSectionId, builtAt }: ReaderArtic
     requestAnimationFrame(() => {
       targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
     });
-  }, [activeSectionId, chapter.html]);
+  }, [activeSectionId, enhancedHtml]);
 
   return (
     <article className="reader-column">
@@ -134,7 +136,7 @@ export function ReaderArticle({ chapter, activeSectionId, builtAt }: ReaderArtic
         ) : null}
       </section>
 
-      <div ref={articleRef} className="surface reader-article" dangerouslySetInnerHTML={{ __html: chapter.html }} />
+      <div ref={articleRef} className="surface reader-article" dangerouslySetInnerHTML={{ __html: enhancedHtml }} />
     </article>
   );
 }

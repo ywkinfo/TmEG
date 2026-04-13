@@ -3869,6 +3869,47 @@ class ContentGuardrailsTest(unittest.TestCase):
             self.assertEqual((overview_entry["pageStart"], overview_entry["pageEnd"]), expected_range)
             self.assertTrue(overview_entry["text"].strip())
 
+    def test_generated_part_cover_pages_are_present_in_search_ranges(self) -> None:
+        search_index = common.load_generated_json("search-index.json")
+
+        expected_part_cover_pages = {
+            23: "총칙",
+            75: "상표등록출원",
+            125: "출원의 보정·분할·변경",
+            157: "상표등록의 요건",
+            213: "상표등록을 받을 수 없는 상표",
+            351: "심사일반",
+            407: "상표 이외의 권리에 대한 심사",
+            455: "비전형상표에 대한 심사",
+            503: "국제상표심사기준의 특례",
+            531: "보칙",
+            539: "부칙",
+            543: "별첨",
+        }
+
+        for page_number, expected_title in expected_part_cover_pages.items():
+            matching_entries = [
+                entry
+                for entry in search_index
+                if entry.get("entryType") == "part-cover"
+                and entry.get("pageStart") == page_number
+                and entry.get("pageEnd") == page_number
+            ]
+            self.assertTrue(matching_entries, f"missing part-cover search entry for p.{page_number}")
+            self.assertIn(expected_title, common.clean_title(matching_entries[0]["sectionTitle"]))
+
+    def test_generated_search_index_includes_image_first_and_appendix_alias_entries(self) -> None:
+        search_index = common.load_generated_json("search-index.json")
+        search_entry_by_id = {entry["id"]: entry for entry in search_index}
+        appendix_alias_titles = {
+            common.clean_title(entry["sectionTitle"]).replace(" ", "")
+            for entry in search_index
+            if entry.get("entryType") == "search-alias"
+        }
+
+        self.assertIn("1-심사절차도", search_entry_by_id)
+        self.assertIn("별첨5한-캐나다FTA에따라보호되는지리적표시", appendix_alias_titles)
+
     def test_is_appendix_boundary_page_requires_null_page_code_and_marker(self) -> None:
         self.assertTrue(is_appendix_boundary_page({"pageCode": None, "topLines": ["부 칙"]}))
         self.assertTrue(is_appendix_boundary_page({"pageCode": None, "topLines": ["별 첨"]}))

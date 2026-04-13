@@ -25,3 +25,4 @@ web/public/generated/*
 
 # OS
 .DS_Store
+.gstack/

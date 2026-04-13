@@ -550,6 +550,10 @@ code {
   overflow: hidden;
 }
 
+.reader-table-scroll {
+  max-width: 100%;
+}
+
 .reader-article td,
 .reader-article th {
   padding: var(--space-2);
@@ -717,5 +721,32 @@ code {
 
   .reader-article .reader-image {
     padding: var(--space-3);
+  }
+
+  .reader-table-scroll {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .reader-table-scroll table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .reader-table-scroll th,
+  .reader-table-scroll td {
+    min-width: 6.5rem;
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  .reader-table-scroll th:first-child,
+  .reader-table-scroll td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    background: rgba(248, 244, 235, 0.96);
   }
 }

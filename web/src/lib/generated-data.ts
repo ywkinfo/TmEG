@@ -188,11 +188,20 @@ export type ReaderData = {
   explorationCounts: Array<{ category: string; count: number }>;
 };
 
+function getDefaultChapterEntry(chapter: ReaderChapter): ReaderSectionEntry | undefined {
+  return (
+    chapter.sectionCatalog.find((entry) => entry.entryType === "part-intro") ??
+    chapter.sectionCatalog.find((entry) => entry.sectionId === "overview") ??
+    chapter.sectionCatalog.find((entry) => entry.entryType !== "part-cover") ??
+    chapter.sectionCatalog[0]
+  );
+}
+
 export function resolveCanonicalChapterRoute(
   chapter: ReaderChapter,
   requestedSectionId: string | undefined
 ): { activeSectionId: string; canonicalPath: string } {
-  const normalizedSectionId = requestedSectionId ?? chapter.sectionCatalog[0]?.sectionId ?? "overview";
+  const normalizedSectionId = requestedSectionId ?? getDefaultChapterEntry(chapter)?.sectionId ?? "overview";
   const matchingEntry = chapter.sectionCatalog.find((entry) => entry.sectionId === normalizedSectionId);
 
   if (matchingEntry) {
@@ -202,7 +211,7 @@ export function resolveCanonicalChapterRoute(
     };
   }
 
-  const fallbackEntry = chapter.sectionCatalog.find((entry) => entry.sectionId === "overview") ?? chapter.sectionCatalog[0];
+  const fallbackEntry = getDefaultChapterEntry(chapter);
 
   return {
     activeSectionId: fallbackEntry?.sectionId ?? "overview",
@@ -300,6 +309,9 @@ export function adaptGeneratedData(input: {
   const searchEntriesByChapter = new Map<string, ReaderSectionEntry[]>();
 
   for (const entry of rawSearchEntries) {
+    if (entry.entryType === "search-alias") {
+      continue;
+    }
     const chapterEntries = searchEntriesByChapter.get(entry.chapterSlug) ?? [];
     chapterEntries.push(entry);
     searchEntriesByChapter.set(entry.chapterSlug, chapterEntries);
@@ -319,13 +331,16 @@ export function adaptGeneratedData(input: {
 
       rawEntries.sort((left, right) => {
         const order = (entry: ReaderSectionEntry): number => {
-          if (entry.entryType === "part-intro") {
+          if (entry.entryType === "part-cover") {
             return 0;
           }
-          if (entry.sectionId === "overview") {
+          if (entry.entryType === "part-intro") {
             return 1;
           }
-          return 2;
+          if (entry.sectionId === "overview") {
+            return 2;
+          }
+          return 3;
         };
 
         const leftOrder = order(left);
@@ -374,7 +389,10 @@ export function adaptGeneratedData(input: {
 
   const chapters = parts.flatMap((part) => part.chapters);
   const chapterMap = new Map(chapters.map((chapter) => [chapter.slug, chapter]));
-  const searchEntries = chapters.flatMap((chapter) => chapter.sectionCatalog);
+  const searchEntries = [
+    ...chapters.flatMap((chapter) => chapter.sectionCatalog),
+    ...rawSearchEntries.filter((entry) => entry.entryType === "search-alias"),
+  ];
 
   const searchKeyMap = new Map(searchEntries.map((entry) => [entry.compositeKey, entry]));
   const relaxedSearchKeyMap = new Map(
