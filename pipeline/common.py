@@ -431,6 +431,21 @@ SYNTHETIC_MULTI_COLUMN_TABLE_SPECS: dict[str, list[dict[str, Any]]] = {
             "consume": 7,
         },
     ],
+    clean_title("1. 요지변경이 아닌 경우"): [
+        {
+            "headers": ["출원상품", "보정상품"],
+            "required_blocks": [
+                "출원상품\n보정상품",
+                "의류\n의류, 속옷, 바지",
+                "김치\n김치, 총각김치, 파김치",
+            ],
+            "rows": [
+                ["의류", "의류, 속옷, 바지"],
+                ["김치", "김치, 총각김치, 파김치"],
+            ],
+            "consume": 3,
+        }
+    ],
     clean_title("1. 위반유형 및 위반시 처리와 판단시점"): [
         {
             "headers": ["1상표 1출원 위반 유형", "심사 처리 방법", "보정방법"],

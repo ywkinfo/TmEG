@@ -149,6 +149,15 @@ GOODS_REVIEW_TABLE_BLOCK_TEXTS = [
     "2.2 판단시점",
 ]
 
+YOJI_CHANGE_EXAMPLE_TABLE_BLOCK_TEXTS = [
+    "1.6.6 포괄명칭을 그 명칭에 포함되는 구체적인 명칭으로 세분하는 경우(해당 포괄명칭을 그대로 둔 채 세분하는 경우를 포함한다)에는 요지변경으로 보지 아니한다(규칙§33-4).",
+    "《요지변경에 해당되지 않는 경우 예시》",
+    "출원상품\n보정상품",
+    "의류\n의류, 속옷, 바지",
+    "김치\n김치, 총각김치, 파김치",
+    "1.6.7 법 제34조제1항제7호 단서 또는 법 제35조제6항에 따른 상표등록에 대한 동의 사실을 증명할 수 있는 서류를 제출하거나 수정하는 경우에는 요지변경으로 보지 아니한다(규칙§33-5).",
+]
+
 ONE_MARK_ONE_APPLICATION_TABLE_BLOCK_TEXTS = [
     "1.2 1상표 1출원 위반유형에 따른 심사처리방법",
     "출원인이 1상표 1출원을 위반하여 출원한 경우 다음 표와 같이 처리하되, 출원인에게 거절이유통지시 해당하는 상표, 지정상품의 삭제보정 및 분할 가능 여부를 함께 통지하여야 한다.",
@@ -979,6 +988,23 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertLess(html.index('《지정상품 세분화에 따라 거절이유 해소가 가능한 경우 예시》'), html.index('reader-synthetic-figure'))
         self.assertLess(html.rindex('reader-synthetic-figure'), html.index('2.2 판단시점'))
         self.assertEqual(blocks_to_text(blocks), "\n\n".join(GOODS_REVIEW_TABLE_BLOCK_TEXTS))
+
+    def test_blocks_to_html_reconstructs_allowlisted_yoji_change_example_table(self) -> None:
+        blocks = make_text_blocks(YOJI_CHANGE_EXAMPLE_TABLE_BLOCK_TEXTS, page_number=137, page_code="30207")
+
+        html = blocks_to_html(blocks, section_title="1. 요지변경이 아닌 경우")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertIn('<th scope="col">출원상품</th>', html)
+        self.assertIn('<th scope="col">보정상품</th>', html)
+        self.assertIn('<td>의류</td>', html)
+        self.assertIn('<td>의류, 속옷, 바지</td>', html)
+        self.assertIn('<td>김치</td>', html)
+        self.assertIn('<td>김치, 총각김치, 파김치</td>', html)
+        self.assertLess(html.index('《요지변경에 해당되지 않는 경우 예시》'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index('1.6.7 법 제34조제1항제7호 단서'))
+        self.assertEqual(blocks_to_text(blocks), "\n\n".join(YOJI_CHANGE_EXAMPLE_TABLE_BLOCK_TEXTS))
 
     def test_blocks_to_html_reconstructs_allowlisted_one_mark_one_application_table(self) -> None:
         blocks = make_text_blocks(ONE_MARK_ONE_APPLICATION_TABLE_BLOCK_TEXTS, page_number=101, page_code="20502")
