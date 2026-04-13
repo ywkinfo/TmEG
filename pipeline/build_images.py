@@ -47,6 +47,12 @@ TIMELINE_CROP_IMAGE_SPECS = {
         "pageCode": "20405",
         "rect": (60.0, 490.0, 478.0, 652.0),
     },
+    clean_title("《요지변경에 해당하지 않는 경우 또는 해당하는 경우 예시》"): {
+        "filename": "8d0b8c9a5f21.png",
+        "pageNumber": 138,
+        "pageCode": "30208",
+        "rect": (8.0, 92.0, 495.0, 226.0),
+    },
 }
 
 

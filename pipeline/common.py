@@ -161,6 +161,27 @@ ALLOWLISTED_CROP_FIGURE_SPECS: dict[str, list[dict[str, Any]]] = {
             ],
             "imageRelativePath": "generated/images/da51bb42fb7e.png",
         }
+    ],
+    clean_title("2. 요지변경에 해당하는 경우"): [
+        {
+            "title": clean_title("《요지변경에 해당하지 않는 경우 또는 해당하는 경우 예시》"),
+            "required_sequence": [
+                {
+                    "type": "text",
+                    "text": "최초 출원상표\n국기·국가 삭제\n『(주)』삭제\n성질표시 삭제\n한글 병기",
+                },
+                {"type": "image"},
+                {"type": "image"},
+                {"type": "image"},
+                {"type": "image"},
+                {"type": "image"},
+                {
+                    "type": "text",
+                    "text": "요지변경 아님\n요지변경 아님\n요지변경 아님\n요지변경",
+                },
+            ],
+            "imageRelativePath": "generated/images/8d0b8c9a5f21.png",
+        },
     ]
 }
 # HTML-only reader aids for tightly allowlisted procedure sections.
@@ -430,6 +451,21 @@ SYNTHETIC_MULTI_COLUMN_TABLE_SPECS: dict[str, list[dict[str, Any]]] = {
             ],
             "consume": 7,
         },
+    ],
+    clean_title("1. 요지변경이 아닌 경우"): [
+        {
+            "headers": ["출원상품", "보정상품"],
+            "required_blocks": [
+                "출원상품\n보정상품",
+                "의류\n의류, 속옷, 바지",
+                "김치\n김치, 총각김치, 파김치",
+            ],
+            "rows": [
+                ["의류", "의류, 속옷, 바지"],
+                ["김치", "김치, 총각김치, 파김치"],
+            ],
+            "consume": 3,
+        }
     ],
     clean_title("1. 위반유형 및 위반시 처리와 판단시점"): [
         {
@@ -1742,6 +1778,29 @@ def _render_allowlisted_crop_figure(
     for spec in specs:
         if title != spec["title"]:
             continue
+        required_sequence = spec.get("required_sequence")
+        if required_sequence:
+            end_index = start_index + 1 + len(required_sequence)
+            if end_index > len(normalized_blocks):
+                continue
+            candidate_blocks = normalized_blocks[start_index + 1 : end_index]
+            matches = True
+            for candidate, expected in zip(candidate_blocks, required_sequence):
+                expected_type = expected.get("type")
+                if expected_type == "image":
+                    if candidate.get("type") != 1:
+                        matches = False
+                        break
+                    continue
+                if expected_type != "text" or candidate.get("type") != 0:
+                    matches = False
+                    break
+                if clean_title(text_block_to_text(candidate)) != clean_title(str(expected.get("text") or "")):
+                    matches = False
+                    break
+            if not matches:
+                continue
+            return _render_timeline_crop_figure(title_text, spec["imageRelativePath"]), end_index
         required_blocks = spec["required_blocks"]
         end_index = start_index + 1 + len(required_blocks)
         if end_index > len(normalized_blocks):

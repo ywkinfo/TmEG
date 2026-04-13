@@ -127,6 +127,28 @@ class BuildImagesTest(unittest.TestCase):
         self.assertEqual(asset["byteSize"], len(b"png-bytes"))
         page.get_pixmap.assert_called_once()
 
+    def test_build_region_asset_uses_yoji_change_example_crop_spec_metadata(self) -> None:
+        spec = TIMELINE_CROP_IMAGE_SPECS["《요지변경에 해당하지 않는 경우 또는 해당하는 경우 예시》"]
+        page = mock.Mock()
+        pixmap = mock.Mock(width=974, height=268)
+        pixmap.tobytes.return_value = b"png-bytes"
+        page.get_pixmap.return_value = pixmap
+
+        document = mock.Mock()
+        document.load_page.return_value = page
+
+        asset = build_region_asset(document, spec)
+
+        self.assertEqual(asset["id"], "8d0b8c9a5f21")
+        self.assertEqual(asset["filename"], "8d0b8c9a5f21.png")
+        self.assertEqual(asset["relativePath"], "images/8d0b8c9a5f21.png")
+        self.assertEqual(asset["_pageCodes"], ["30208"])
+        self.assertEqual(asset["_pageNumbers"], [138])
+        self.assertEqual(asset["width"], 974)
+        self.assertEqual(asset["height"], 268)
+        self.assertEqual(asset["byteSize"], len(b"png-bytes"))
+        page.get_pixmap.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
