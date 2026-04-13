@@ -645,6 +645,44 @@ SYNTHETIC_MULTI_COLUMN_TABLE_SPECS: dict[str, list[dict[str, Any]]] = {
             "consume": 4,
         },
         {
+            "headers": ["상표(지정상품)", "판단 내용", "관련판례"],
+            "required_sequence": [
+                {"type": "text", "text": "상표(지정상품)\n판 단 내 용\n관련판례"},
+                {
+                    "type": "text",
+                    "text": "“PNEUMO”는 ‘폐렴’, “SHIELD”는 ‘보호, 방패’를 의미하므로 주거래자인 의사, 약사를 기준으로 “폐렴예방백신”으로 용도·효능을 직감",
+                },
+                {"type": "text", "text": "PNEUMOSHIELD"},
+                {"type": "text", "text": "2000후"},
+                {"type": "text", "text": "(인체용폐렴백신)"},
+                {"type": "text", "text": "2170"},
+                {
+                    "type": "text",
+                    "text": "‘지구(환경) 친화적인 제품’ 내지 ‘친환경 제품’이라는 등의 의미로 해석되므로 지정상품에 사용될 경우 그 의미가 직접적으로 인식됨",
+                },
+                {"type": "image", "relativePath": "generated/images/1cba0ffe8d7e.jpeg"},
+                {"type": "text", "text": "2018허1783"},
+                {"type": "text", "text": "(세탁용 세제)"},
+            ],
+            "rows": [
+                [
+                    "PNEUMOSHIELD\n(인체용폐렴백신)",
+                    "“PNEUMO”는 ‘폐렴’, “SHIELD”는 ‘보호, 방패’를 의미하므로 주거래자인 의사, 약사를 기준으로 “폐렴예방백신”으로 용도·효능을 직감",
+                    "2000후\n2170",
+                ],
+                [
+                    {
+                        "type": "image",
+                        "relativePath": "generated/images/1cba0ffe8d7e.jpeg",
+                        "alt": "EARTH FRIENDLY PRODUCTS",
+                        "label": "(세탁용 세제)",
+                    },
+                    "‘지구(환경) 친화적인 제품’ 내지 ‘친환경 제품’이라는 등의 의미로 해석되므로 지정상품에 사용될 경우 그 의미가 직접적으로 인식됨",
+                    "2018허1783",
+                ],
+            ],
+        },
+        {
             "headers": ["지정상품", "상표", "지정상품", "상표"],
             "required_blocks": [
                 "지정상품\n상    표\n지정상품\n상    표구중청량제\n인단 (66후7)\n직    물\nTEX, LON, RAN",
@@ -713,6 +751,52 @@ SYNTHETIC_MULTI_COLUMN_TABLE_SPECS: dict[str, list[dict[str, Any]]] = {
                 ["화 장 품", "QUEEN(2009후2098)", "프린터용 잉크", "BLUEMARK(2009허7345)"],
             ],
             "consume": 9,
+        },
+    ],
+    clean_title("2. 판단시 유의사항"): [
+        {
+            "headers": ["상표(지정상품)", "판단 내용", "관련판례"],
+            "required_blocks": [
+                "상표(지정상품)\n판 단 내 용\n관련판례HABITAT FOR HUMANITY(빈곤자를 위한 주택건축수리업)",
+                "“HABITAT”가  일반인에게 널리 알려져 있지 않지만 객관적 의미가 그런 뜻이므로 거래사회에서는 직접적인 성질표시로 볼 것임",
+                "1997후3296",
+                "“마끼에(maquillée)”는 불어로 ‘화장하는’ 의미, 미용업계에서 ‘메이크업, 웨딩화장업’으로 사용하고 있는 이상, 효능·용도표시 등에 해당",
+                "2011허10474",
+                "maquillée(미용실업)",
+            ],
+            "rows": [
+                [
+                    "HABITAT FOR HUMANITY\n(빈곤자를 위한 주택건축수리업)",
+                    "“HABITAT”가  일반인에게 널리 알려져 있지 않지만 객관적 의미가 그런 뜻이므로 거래사회에서는 직접적인 성질표시로 볼 것임",
+                    "1997후3296",
+                ],
+                [
+                    "maquillée\n(미용실업)",
+                    "“마끼에(maquillée)”는 불어로 ‘화장하는’ 의미, 미용업계에서 ‘메이크업, 웨딩화장업’으로 사용하고 있는 이상, 효능·용도표시 등에 해당",
+                    "2011허10474",
+                ],
+            ],
+            "consume": 6,
+        },
+        {
+            "headers": ["지정상품", "상    표", "지정상품", "상    표"],
+            "required_blocks": [
+                "지정상품\n상    표\n지정상품\n상    표",
+                "신용카드업",
+                "EasiCard",
+                "(EASYCARD의 변형)",
+                "자동차",
+                "AUTOMATIQUE(AUTOMATIC의 변형)",
+            ],
+            "rows": [
+                [
+                    "신용카드업",
+                    "EasiCard\n(EASYCARD의 변형)",
+                    "자동차",
+                    "AUTOMATIQUE\n(AUTOMATIC의 변형)",
+                ],
+            ],
+            "consume": 6,
         },
     ],
     clean_title("상표의 식별력"): [
@@ -1948,10 +2032,10 @@ def _render_synthetic_comparison_table(headers: list[str], rows: list[tuple[str,
     )
 
 
-def _render_synthetic_multi_column_table(headers: list[str], rows: list[list[str]]) -> str:
+def _render_synthetic_multi_column_table(headers: list[str], rows: list[list[Any]]) -> str:
     head_html = "".join(f'<th scope="col">{_escape_table_text(header)}</th>' for header in headers)
     body_html = "".join(
-        f"<tr>{''.join(f'<td>{_escape_table_text(cell)}</td>' for cell in row)}</tr>" for row in rows
+        f"<tr>{''.join(f'<td>{_render_synthetic_table_cell(cell)}</td>' for cell in row)}</tr>" for row in rows
     )
     return "\n".join(
         [
@@ -1959,6 +2043,37 @@ def _render_synthetic_multi_column_table(headers: list[str], rows: list[list[str
             f"<table><thead><tr>{head_html}</tr></thead><tbody>{body_html}</tbody></table>",
             "</figure>",
         ]
+    )
+
+
+def _render_synthetic_table_cell(cell: Any) -> str:
+    if isinstance(cell, str):
+        return _escape_table_text(cell)
+
+    if not isinstance(cell, dict):
+        return _escape_table_text(str(cell))
+
+    if cell.get("type") != "image":
+        return _escape_table_text(str(cell.get("text") or ""))
+
+    relative_path = str(cell.get("relativePath") or "").strip()
+    if not relative_path:
+        return ""
+
+    alt_text = str(cell.get("alt") or "상표 이미지")
+    label = str(cell.get("label") or "").strip()
+    label_html = (
+        f'<div class="reader-synthetic-table-image-label">{_escape_table_text(label)}</div>'
+        if label
+        else ""
+    )
+    return (
+        '<div class="reader-synthetic-table-image-cell">'
+        f'<a href="{escape(relative_path)}" target="_blank" rel="noreferrer">'
+        f'<img src="{escape(relative_path)}" loading="lazy" alt="{escape(alt_text)}" />'
+        "</a>"
+        f"{label_html}"
+        "</div>"
     )
 
 
@@ -1972,7 +2087,9 @@ def _render_allowlisted_comparison_table(
         return None, start_index + 1
 
     for spec in specs:
-        required_blocks = spec["required_blocks"]
+        required_blocks = spec.get("required_blocks")
+        if not required_blocks:
+            continue
         consume = int(spec["consume"])
         end_index = start_index + consume
         if end_index > len(normalized_blocks):
@@ -1995,6 +2112,34 @@ def _render_allowlisted_multi_column_table(
         return None, start_index + 1
 
     for spec in specs:
+        required_sequence = spec.get("required_sequence")
+        if required_sequence:
+            end_index = start_index + len(required_sequence)
+            if end_index > len(normalized_blocks):
+                continue
+            candidate_blocks = normalized_blocks[start_index:end_index]
+            matches = True
+            for candidate, expected in zip(candidate_blocks, required_sequence):
+                expected_type = expected.get("type")
+                if expected_type == "image":
+                    if candidate.get("type") != 1:
+                        matches = False
+                        break
+                    expected_relative_path = str(expected.get("relativePath") or "").strip()
+                    if expected_relative_path and candidate.get("_relativePath") != expected_relative_path:
+                        matches = False
+                        break
+                    continue
+                if expected_type != "text" or candidate.get("type") != 0:
+                    matches = False
+                    break
+                if text_block_to_text(candidate) != str(expected.get("text") or ""):
+                    matches = False
+                    break
+            if not matches:
+                continue
+            return _render_synthetic_multi_column_table(spec["headers"], spec["rows"]), end_index
+
         required_blocks = spec["required_blocks"]
         consume = int(spec["consume"])
         end_index = start_index + consume
