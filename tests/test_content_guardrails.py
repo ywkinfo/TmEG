@@ -182,6 +182,61 @@ GENERIC_NAME_EXAMPLE_TABLE_BLOCK_TEXTS = [
     "1.2 상품의 보통명칭이 ‘보통으로 사용하는 방법으로 표시’되어 있을 것",
 ]
 
+DISTINCTIVENESS_CLASSIFICATION_TABLE_BLOCK_TEXTS = [
+    "2. 식별력에 따른 상표의 구분",
+    "상표는 식별력 정도에 따라 보통명칭 표장(generic mark), 기술적 표장(descriptive mark), 암시적 표장(suggestive mark), 임의선택 표장(arbitrary mark), 조어(창작) 표장(coined or fanciful mark)으로 구분할 수 있다(Abercrombie test).",
+    "구분\n보통명칭 표장\n기술적 표장\n암시적 표장\n임의선택 표장\n조어(창작) 표장",
+    "의미",
+    "상품명칭 그 자체상품의 특성을",
+    "직접적으로 설명",
+    "상품의 특성을 간접적으로 암시",
+    "지정상품과 관계없는 용어를 상표로 선택",
+    "없던 용어를 만들어 상표로 사용",
+    "예시(지정상품 “캔디”) CANDY",
+    "SWEET",
+    "SWEETARTS",
+    "PRINCE",
+    "HONIVAL",
+    "식별력",
+    "항상 식별력 없음",
+    "(원칙) 식별력 없음(예외) 사용에 의한 식별력 획득 가능",
+    "원래 식별력 있음",
+    "원래 식별력 있음",
+    "원래 식별력 있음",
+    "상표등록 가능성",
+    "어떠한 경우도 등록 불가",
+    "사용에 의한 식별력 획득시 등록 가능등록 가능",
+    "등록 가능",
+    "등록 가능",
+    "* Abercrombie test : “Safari” 상표를 둘러싼 미국의 ‘Abercrombie & Fitch사’와 ‘Hunting World사’간의 상표분쟁사건 판결에서 제시된 상표의 식별력 판단방법",
+]
+
+UNREGISTERED_VARIETY_NAME_TABLE_BLOCK_TEXTS = [
+    "3.2 「종자산업법」 또는 「식물신품종 보호법」에 의해 등록되지 않은 종자나 품종명칭, 외국에 등록된 종자나 품종명칭이라도 거래업계에서 특정 종자나 품종명칭으로 널리 알려진 경우, 그 종자나 품종명칭과 동일한 상표를 그 종자나 묘목 또는 이와 관련된 상품에 출원한 경우에는 본호를 적용하며, 상품 자체를 오인하게 할 우려가 있는 경우에는 법 제34조제1항제12호를 함께 적용한다.",
+    "《미등록 품종명칭 사례》",
+    "상표(지정상품)\n판 단 내 용\n관련판례",
+    "절화장미의 품종명칭으로 널리 사용, 장미·장미묘목은 법§6①1(개정법§33①1)에 해당,나무·묘목 등 상품 자체를 오인케 할 우려가 있는 상품은 법§6①1(개정법§33①1), 법§7①11(개정법§34①12)에 해당",
+    "Red Sandra",
+    "(장미, 장미묘목, 나무, 화초, 원예용 종자, 구근, 묘목)",
+    "2001후2283",
+    "3.3 출원상표의 지정상품 중 특정한 작물의 명칭이 명시되지 않고 ‘신선한 과일’, ‘신선한 채소’, ‘종자’, ‘구근’, ‘묘종’, ‘묘목’, ‘관목’, ‘나무’ 등 포괄명칭으로 출원된 경우 법 제34조제1항제12호를 적용한다.",
+]
+
+INDIRECT_SUGGESTIVE_EXAMPLE_TABLE_BLOCK_TEXTS = [
+    "1.1.1 본호에 해당하기 위해서는 출원상표가 지정상품과의 관계에서 산지·품질·원재료·효능·용도·수량·형상·가격·생산방법·가공방법·사용방법 또는 시기 등을 직접적으로 표시하여 상품의 출처표시로 인식될 수 없거나, 특정인에게 독점시킬 경우 당 업계의 경쟁을 제한할 우려가 있는 경우에 적용한다. 따라서 상품의 성질을 간접적·암시적으로 표시하는 것에 지나지 않는 경우에는 본호를 적용하지 않는다.",
+    "《간접적·암시적으로 표시한 사례》",
+    "지정상품\n상    표\n지정상품\n상    표",
+    "냉 장 고",
+    "SMART & SOFT(1996후1729)",
+    "요가교육업",
+    "PUREYOGA(2005후2595)",
+    "화 장 품",
+    "QUEEN(2009후2098)",
+    "프린터용 잉크",
+    "BLUEMARK(2009허7345)",
+    "1.1.2 외국어사전이나 전문용어사전 등에 수록된 의미 중 일반수요자들에게 널리 알려진 의미를 기준으로 판단하고, 그 의미만으로 지정상품의 성질을 명확하게 나타내는 경우 직접적으로 표시하는 것으로 본다. 한편, 사전에 수록되어 있지 않더라도 인터넷 등에서 성질표시에 해당하는 특정한 의미로 널리 사용되고 있는 경우에는 원칙적으로 이에 해당하는 것으로 본다.",
+]
+
 YOJI_CHANGE_EXAMPLE_TABLE_BLOCK_TEXTS = [
     "1.6.6 포괄명칭을 그 명칭에 포함되는 구체적인 명칭으로 세분하는 경우(해당 포괄명칭을 그대로 둔 채 세분하는 경우를 포함한다)에는 요지변경으로 보지 아니한다(규칙§33-4).",
     "《요지변경에 해당되지 않는 경우 예시》",
@@ -1040,6 +1095,62 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertLess(html.index('reader-synthetic-figure'), html.index('1.2 상품의 보통명칭이 ‘보통으로 사용하는 방법으로 표시’되어 있을 것'))
         self.assertEqual(blocks_to_text(blocks), "\n\n".join(GENERIC_NAME_EXAMPLE_TABLE_BLOCK_TEXTS))
 
+    def test_blocks_to_html_reconstructs_allowlisted_distinctiveness_classification_table(self) -> None:
+        blocks = make_text_blocks(DISTINCTIVENESS_CLASSIFICATION_TABLE_BLOCK_TEXTS, page_number=159, page_code="40101")
+
+        html = blocks_to_html(blocks, section_title="상표의 식별력")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertIn('<th scope="col">보통명칭 표장</th>', html)
+        self.assertIn('<th scope="col">기술적 표장</th>', html)
+        self.assertIn('<th scope="col">암시적 표장</th>', html)
+        self.assertIn('<th scope="col">임의선택 표장</th>', html)
+        self.assertIn('<th scope="col">조어(창작) 표장</th>', html)
+        self.assertIn('<td>예시(지정상품 “캔디”)</td>', html)
+        self.assertIn('<td>CANDY</td>', html)
+        self.assertIn('<td>SWEETARTS</td>', html)
+        self.assertIn('<td>HONIVAL</td>', html)
+        self.assertIn('<td>어떠한 경우도 등록 불가</td>', html)
+        self.assertLess(html.index('2. 식별력에 따른 상표의 구분'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index('* Abercrombie test'))
+        self.assertEqual(blocks_to_text(blocks), "\n\n".join(DISTINCTIVENESS_CLASSIFICATION_TABLE_BLOCK_TEXTS))
+
+    def test_blocks_to_html_reconstructs_allowlisted_unregistered_variety_name_table(self) -> None:
+        blocks = make_text_blocks(UNREGISTERED_VARIETY_NAME_TABLE_BLOCK_TEXTS, page_number=164, page_code="40104")
+
+        html = blocks_to_html(blocks, section_title="3. 다른 조문과의 관계")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertIn('<th scope="col">상표(지정상품)</th>', html)
+        self.assertIn('<th scope="col">판단 내용</th>', html)
+        self.assertIn('<th scope="col">관련판례</th>', html)
+        self.assertIn('<td>Red Sandra (장미, 장미묘목, 나무, 화초, 원예용 종자, 구근, 묘목)</td>', html)
+        self.assertIn('<td>2001후2283</td>', html)
+        self.assertLess(html.index('《미등록 품종명칭 사례》'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index('3.3 출원상표의 지정상품 중 특정한 작물의 명칭이 명시되지 않고'))
+        self.assertEqual(blocks_to_text(blocks), "\n\n".join(UNREGISTERED_VARIETY_NAME_TABLE_BLOCK_TEXTS))
+
+    def test_blocks_to_html_reconstructs_allowlisted_indirect_suggestive_example_table(self) -> None:
+        blocks = make_text_blocks(INDIRECT_SUGGESTIVE_EXAMPLE_TABLE_BLOCK_TEXTS, page_number=170, page_code="40302")
+
+        html = blocks_to_html(blocks, section_title="1. 적용요건")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertIn('<th scope="col">지정상품</th>', html)
+        self.assertIn('<th scope="col">상 표</th>', html)
+        self.assertIn('<td>냉 장 고</td>', html)
+        self.assertIn('<td>SMART &amp; SOFT(1996후1729)</td>', html)
+        self.assertIn('<td>요가교육업</td>', html)
+        self.assertIn('<td>PUREYOGA(2005후2595)</td>', html)
+        self.assertIn('<td>프린터용 잉크</td>', html)
+        self.assertIn('<td>BLUEMARK(2009허7345)</td>', html)
+        self.assertLess(html.index('《간접적·암시적으로 표시한 사례》'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index('1.1.2 외국어사전이나 전문용어사전'))
+        self.assertEqual(blocks_to_text(blocks), "\n\n".join(INDIRECT_SUGGESTIVE_EXAMPLE_TABLE_BLOCK_TEXTS))
+
     def test_blocks_to_html_reconstructs_allowlisted_yoji_change_example_table(self) -> None:
         blocks = make_text_blocks(YOJI_CHANGE_EXAMPLE_TABLE_BLOCK_TEXTS, page_number=137, page_code="30207")
 
@@ -1317,6 +1428,42 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertIn('<p>지정상품<br />상 표<br />지정상품<br />상 표포장용 필름</p>', html)
         self.assertIn('Truck Lite(96후986)', html)
         self.assertIn('Caffé Latté(02후321)', html)
+
+    def test_blocks_to_html_falls_back_for_incomplete_distinctiveness_classification_table_cluster(self) -> None:
+        texts = DISTINCTIVENESS_CLASSIFICATION_TABLE_BLOCK_TEXTS[:-3] + DISTINCTIVENESS_CLASSIFICATION_TABLE_BLOCK_TEXTS[-1:]
+        blocks = make_text_blocks(texts, page_number=159, page_code="40101")
+
+        html = blocks_to_html(blocks, section_title="상표의 식별력")
+
+        self.assertNotIn('reader-synthetic-figure', html)
+        self.assertNotIn('<table>', html)
+        self.assertIn('<p>구분<br />보통명칭 표장<br />기술적 표장<br />암시적 표장<br />임의선택 표장<br />조어(창작) 표장</p>', html)
+        self.assertIn('SWEETARTS', html)
+        self.assertIn('상표등록 가능성', html)
+
+    def test_blocks_to_html_falls_back_for_incomplete_unregistered_variety_name_table_cluster(self) -> None:
+        texts = UNREGISTERED_VARIETY_NAME_TABLE_BLOCK_TEXTS[:-2] + UNREGISTERED_VARIETY_NAME_TABLE_BLOCK_TEXTS[-1:]
+        blocks = make_text_blocks(texts, page_number=164, page_code="40104")
+
+        html = blocks_to_html(blocks, section_title="3. 다른 조문과의 관계")
+
+        self.assertNotIn('reader-synthetic-figure', html)
+        self.assertNotIn('<table>', html)
+        self.assertIn('<p>상표(지정상품)<br />판 단 내 용<br />관련판례</p>', html)
+        self.assertIn('Red Sandra', html)
+        self.assertNotIn('2001후2283', html)
+
+    def test_blocks_to_html_falls_back_for_incomplete_indirect_suggestive_example_table_cluster(self) -> None:
+        texts = INDIRECT_SUGGESTIVE_EXAMPLE_TABLE_BLOCK_TEXTS[:-2] + INDIRECT_SUGGESTIVE_EXAMPLE_TABLE_BLOCK_TEXTS[-1:]
+        blocks = make_text_blocks(texts, page_number=170, page_code="40302")
+
+        html = blocks_to_html(blocks, section_title="1. 적용요건")
+
+        self.assertNotIn('reader-synthetic-figure', html)
+        self.assertNotIn('<table>', html)
+        self.assertIn('<p>지정상품<br />상    표<br />지정상품<br />상    표</p>', html)
+        self.assertIn('SMART &amp; SOFT(1996후1729)', html)
+        self.assertIn('QUEEN(2009후2098)', html)
 
     def test_blocks_to_html_does_not_reconstruct_comparison_tables_outside_allowlisted_section(self) -> None:
         blocks = [
