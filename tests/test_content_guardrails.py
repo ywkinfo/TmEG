@@ -103,6 +103,20 @@ def make_text_blocks(
     ]
 
 
+def make_image_block(
+    *,
+    page_number: int = 138,
+    page_code: str = "30208",
+    relative_path: str = "generated/images/example.png",
+) -> dict[str, object]:
+    return {
+        "type": 1,
+        "_relativePath": relative_path,
+        "_pageNumber": page_number,
+        "_pageCode": page_code,
+    }
+
+
 def make_mark_type_table_blocks(*, extra_texts: list[str] | None = None, truncate_after: int | None = None) -> list[dict[str, object]]:
     texts = MARK_TYPE_TABLE_BLOCK_TEXTS.copy()
     if truncate_after is not None:
@@ -1005,6 +1019,99 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertLess(html.index('《요지변경에 해당되지 않는 경우 예시》'), html.index('reader-synthetic-figure'))
         self.assertLess(html.index('reader-synthetic-figure'), html.index('1.6.7 법 제34조제1항제7호 단서'))
         self.assertEqual(blocks_to_text(blocks), "\n\n".join(YOJI_CHANGE_EXAMPLE_TABLE_BLOCK_TEXTS))
+
+    def test_blocks_to_html_renders_allowlisted_yoji_change_original_example_crop_figure(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 138,
+                "_pageCode": "30208",
+                "_normalizedText": "2.1.3 외국어나 한자만으로 된 상표를 한글 음역으로 변경하거나 그 상표의 상하좌우에 한글 음역을 추가 병기하거나, 병기된 상표의 일부를 삭제하는 등 상표의 관념, 호칭에는 실질적인 영향이 없으나 외관에 큰 영향을 주는 경우 요지변경으로 본다.",
+            },
+            {
+                "type": 0,
+                "_pageNumber": 138,
+                "_pageCode": "30208",
+                "_normalizedText": "《요지변경에 해당하지 않는 경우 또는 해당하는 경우 예시》",
+            },
+            {
+                "type": 0,
+                "_pageNumber": 138,
+                "_pageCode": "30208",
+                "_normalizedText": "최초 출원상표\n국기·국가 삭제\n『(주)』삭제\n성질표시 삭제\n한글 병기",
+            },
+            make_image_block(),
+            make_image_block(),
+            make_image_block(),
+            make_image_block(),
+            make_image_block(),
+            {
+                "type": 0,
+                "_pageNumber": 138,
+                "_pageCode": "30208",
+                "_normalizedText": "요지변경 아님\n요지변경 아님\n요지변경 아님\n요지변경",
+            },
+            {
+                "type": 0,
+                "_pageNumber": 138,
+                "_pageCode": "30208",
+                "_normalizedText": "2.1.4 도형부분의 식별력이 크지 않더라도 문자 부분과 별개로 외관상 특징을 가져서 이를 삭제할 경우 외관에 상당한 변경이 생기게 되는 경우에는 동일성이 유지된다고 보기 어려우므로 요지변경에 해당한다.",
+            },
+        ]
+
+        html = blocks_to_html(blocks, section_title="2. 요지변경에 해당하는 경우")
+
+        self.assertEqual(html.count('<figure class="reader-image">'), 1)
+        self.assertIn('src="generated/images/8d0b8c9a5f21.png"', html)
+        self.assertIn('<figcaption>《요지변경에 해당하지 않는 경우 또는 해당하는 경우 예시》</figcaption>', html)
+        self.assertNotIn('src="generated/images/example.png"', html)
+        self.assertLess(html.index('2.1.3 외국어나 한자만으로 된 상표를'), html.index('generated/images/8d0b8c9a5f21.png'))
+        self.assertLess(html.index('generated/images/8d0b8c9a5f21.png'), html.index('2.1.4 도형부분의 식별력이 크지 않더라도'))
+        self.assertEqual(
+            blocks_to_text(blocks),
+            "\n\n".join(
+                [
+                    "2.1.3 외국어나 한자만으로 된 상표를 한글 음역으로 변경하거나 그 상표의 상하좌우에 한글 음역을 추가 병기하거나, 병기된 상표의 일부를 삭제하는 등 상표의 관념, 호칭에는 실질적인 영향이 없으나 외관에 큰 영향을 주는 경우 요지변경으로 본다.",
+                    "《요지변경에 해당하지 않는 경우 또는 해당하는 경우 예시》",
+                    "최초 출원상표\n국기·국가 삭제\n『(주)』삭제\n성질표시 삭제\n한글 병기",
+                    "요지변경 아님\n요지변경 아님\n요지변경 아님\n요지변경",
+                    "2.1.4 도형부분의 식별력이 크지 않더라도 문자 부분과 별개로 외관상 특징을 가져서 이를 삭제할 경우 외관에 상당한 변경이 생기게 되는 경우에는 동일성이 유지된다고 보기 어려우므로 요지변경에 해당한다.",
+                ]
+            ),
+        )
+
+    def test_blocks_to_html_does_not_render_yoji_change_original_example_crop_outside_allowlisted_section(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 138,
+                "_pageCode": "30208",
+                "_normalizedText": "《요지변경에 해당하지 않는 경우 또는 해당하는 경우 예시》",
+            },
+            {
+                "type": 0,
+                "_pageNumber": 138,
+                "_pageCode": "30208",
+                "_normalizedText": "최초 출원상표\n국기·국가 삭제\n『(주)』삭제\n성질표시 삭제\n한글 병기",
+            },
+            make_image_block(),
+            make_image_block(),
+            make_image_block(),
+            make_image_block(),
+            make_image_block(),
+            {
+                "type": 0,
+                "_pageNumber": 138,
+                "_pageCode": "30208",
+                "_normalizedText": "요지변경 아님\n요지변경 아님\n요지변경 아님\n요지변경",
+            },
+        ]
+
+        html = blocks_to_html(blocks, section_title="1. 요지변경이 아닌 경우")
+
+        self.assertNotIn('src="generated/images/8d0b8c9a5f21.png"', html)
+        self.assertEqual(html.count('src="generated/images/example.png"'), 5)
+        self.assertIn('《요지변경에 해당하지 않는 경우 또는 해당하는 경우 예시》', html)
 
     def test_blocks_to_html_reconstructs_allowlisted_one_mark_one_application_table(self) -> None:
         blocks = make_text_blocks(ONE_MARK_ONE_APPLICATION_TABLE_BLOCK_TEXTS, page_number=101, page_code="20502")
