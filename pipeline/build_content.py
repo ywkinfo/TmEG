@@ -101,7 +101,9 @@ def trim_overview_ranges(
         child_page_starts = sorted(
             entry["pageStart"]
             for entry in chapter_entries
-            if entry["entryType"] != "overview" and entry.get("pageStart") is not None
+            if entry["entryType"] != "overview"
+            and entry.get("pageStart") is not None
+            and entry["pageStart"] >= (chapter.get("pageStart") or 0)
         )
         first_child_start = child_page_starts[0] if child_page_starts else None
 
@@ -111,6 +113,125 @@ def trim_overview_ranges(
         )
 
     return section_entries
+
+
+def inventory_page_has_text(page_meta: dict[str, Any]) -> bool:
+    return bool(page_meta.get("hasText")) and int(page_meta.get("charCount", 0) or 0) > 0
+
+
+def inventory_page_matches_part(page_meta: dict[str, Any], part_title: str) -> bool:
+    normalized_part_title = clean_title(part_title)
+    top_lines = page_meta.get("topLines") or []
+    for line in top_lines:
+        normalized = clean_title(line)
+        if normalized:
+            return normalized == normalized_part_title
+    return False
+
+
+def find_part_intro_page_range(
+    inventory_page_map: dict[int, dict[str, Any]],
+    part_title: str,
+    chapter_start: int | None,
+    *,
+    excluded_pages: set[int] | None = None,
+) -> tuple[int, int] | None:
+    if chapter_start is None or chapter_start <= 1:
+        return None
+
+    excluded_page_set = excluded_pages or set()
+    start_page: int | None = None
+    end_page = chapter_start - 1
+
+    for page_number in range(end_page, 0, -1):
+        if page_number in excluded_page_set:
+            break
+        page_meta = inventory_page_map.get(page_number)
+        if page_meta is None:
+            break
+        if page_meta.get("pageCode") is not None:
+            break
+        if not inventory_page_has_text(page_meta):
+            break
+        if not inventory_page_matches_part(page_meta, part_title):
+            break
+        start_page = page_number
+
+    if start_page is None:
+        return None
+    return start_page, end_page
+
+
+def derive_part_intro_title(
+    blocks: list[dict[str, Any]],
+    *,
+    part_title: str,
+    chapter_title: str,
+    fallback_label: str,
+) -> str:
+    lines = page_text_lines(
+        blocks,
+        part_title=part_title,
+        chapter_title=chapter_title,
+    )
+    for line in lines:
+        normalized = clean_title(line)
+        if normalized:
+            return normalized
+    return f"{fallback_label} 도입"
+
+
+def collect_uncovered_non_toc_text_pages(
+    inventory_page_map: dict[int, dict[str, Any]],
+    parts: list[dict[str, Any]],
+    chapter_start_by_slug: dict[str, int | None],
+    section_entries: list[dict[str, Any]],
+    *,
+    excluded_pages: set[int] | None = None,
+) -> list[dict[str, Any]]:
+    excluded_page_set = excluded_pages or set()
+    covered_pages: set[int] = set()
+
+    for entry in section_entries:
+        page_start = entry.get("pageStart")
+        page_end = entry.get("pageEnd")
+        if page_start is None or page_end is None:
+            continue
+        for page_number in range(page_start, page_end + 1):
+            if page_number in excluded_page_set:
+                continue
+            covered_pages.add(page_number)
+
+    uncovered_pages: list[dict[str, Any]] = []
+    for part in parts:
+        if not part.get("chapters"):
+            continue
+        first_chapter = part["chapters"][0]
+        chapter_start = chapter_start_by_slug.get(first_chapter["id"])
+        intro_range = find_part_intro_page_range(
+            inventory_page_map,
+            part["fullTitle"],
+            chapter_start,
+            excluded_pages=excluded_page_set,
+        )
+        if intro_range is None:
+            continue
+
+        for page_number in range(intro_range[0], intro_range[1] + 1):
+            if page_number in excluded_page_set or page_number in covered_pages:
+                continue
+            page_meta = inventory_page_map.get(page_number)
+            if page_meta is None or not inventory_page_has_text(page_meta):
+                continue
+            uncovered_pages.append(
+                {
+                    "pageNumber": page_number,
+                    "pageCode": page_meta.get("pageCode"),
+                    "topLines": (page_meta.get("topLines") or [])[:3],
+                }
+            )
+
+    return uncovered_pages
 
 
 def join_page_range(
@@ -658,7 +779,9 @@ def extend_end_page_for_next_sibling(
 ) -> int | None:
     if structural_end_page is None:
         return None
-    if entry["entryType"] == "overview" or following_entry is None:
+    if entry["entryType"] in {"overview", "part-intro"} or following_entry is None:
+        return structural_end_page
+    if following_entry.get("entryType") == "overview":
         return structural_end_page
 
     nominal_end_page = entry.get("pageEnd")
@@ -754,7 +877,7 @@ def main() -> None:
     missing_page_codes: list[str] = []
 
     for part in toc["parts"]:
-        for chapter in part["chapters"]:
+        for chapter_index, chapter in enumerate(part["chapters"]):
             chapter_start, chapter_used_fallback = resolve_page_start(page_code_map, chapter["pageCode"])
             if chapter_start is None:
                 missing_page_codes.append(chapter["pageCode"])
@@ -770,6 +893,41 @@ def main() -> None:
                 "usedFallbackPageStart": chapter_used_fallback,
             }
             chapters_in_order.append(chapter_record)
+
+            if chapter_index == 0:
+                part_intro_range = find_part_intro_page_range(
+                    inventory_page_map,
+                    part["fullTitle"],
+                    chapter_start,
+                    excluded_pages=toc_pages,
+                )
+                if part_intro_range is not None:
+                    part_intro_blocks = join_page_blocks(
+                        page_blocks,
+                        part_intro_range[0],
+                        part_intro_range[1],
+                        excluded_pages=toc_pages,
+                    )
+                    section_entries.append(
+                        {
+                            "id": f"{chapter['id']}-part-intro",
+                            "chapterSlug": chapter["id"],
+                            "chapterTitle": chapter["fullTitle"],
+                            "sectionId": "part-intro",
+                            "sectionTitle": derive_part_intro_title(
+                                part_intro_blocks,
+                                part_title=part["fullTitle"],
+                                chapter_title=chapter["fullTitle"],
+                                fallback_label=part["label"],
+                            ),
+                            "entryType": "part-intro",
+                            "partTitle": part["fullTitle"],
+                            "pageCode": None,
+                            "pageStart": part_intro_range[0],
+                            "pageEnd": part_intro_range[1],
+                            "usedFallbackPageStart": False,
+                        }
+                    )
 
             section_entries.append(
                 {
@@ -925,23 +1083,42 @@ def main() -> None:
     built_chapters: list[dict[str, Any]] = []
     for chapter_record in chapters_in_order:
         chapter_sections = section_entries_by_chapter[chapter_record["slug"]]
+        chapter_page_starts = [
+            entry["pageStart"] for entry in chapter_sections if entry.get("pageStart") is not None
+        ]
+        chapter_page_ends = [
+            entry["pageEnd"] for entry in chapter_sections if entry.get("pageEnd") is not None
+        ]
         overview_entry = next(
             (entry for entry in chapter_sections if entry["entryType"] == "overview"),
             None,
         )
+        part_intro_entries = [entry for entry in chapter_sections if entry["entryType"] == "part-intro"]
         chapter_text = "\n\n".join(
             entry["text"] for entry in chapter_sections if entry.get("text")
         ).strip()
         chapter_image_count = sum(entry["imageCount"] for entry in chapter_sections)
-        html_parts = [
-            "<section id=\"overview\">",
-            f"<h2>{chapter_record['title']}</h2>",
-        ]
+        html_parts: list[str] = []
+        for entry in part_intro_entries:
+            html_parts.extend(
+                [
+                    f"<section id=\"{entry['sectionId']}\">",
+                    f"<h3>{entry['sectionTitle']}</h3>",
+                    entry["html"],
+                    "</section>",
+                ]
+            )
+        html_parts.extend(
+            [
+                "<section id=\"overview\">",
+                f"<h2>{chapter_record['title']}</h2>",
+            ]
+        )
         if overview_entry and (overview_entry["text"] or overview_entry["hasImage"]):
             html_parts.append(overview_entry["html"])
         html_parts.append("</section>")
         for entry in chapter_sections:
-            if entry["entryType"] == "overview":
+            if entry["entryType"] in {"overview", "part-intro"}:
                 continue
             heading_tag = "h3" if entry["entryType"] != "item" or "보충기준" in entry["sectionTitle"] else "h3"
             html_parts.extend(
@@ -964,8 +1141,8 @@ def main() -> None:
                 "headings": build_headings(chapter_record["raw"]),
                 "partTitle": chapter_record["partTitle"],
                 "pageCode": chapter_record["pageCode"],
-                "pageStart": chapter_record["pageStart"],
-                "pageEnd": overview_entry["pageEnd"] if overview_entry and len(chapter_sections) == 1 else chapter_record["pageEnd"],
+                "pageStart": min(chapter_page_starts) if chapter_page_starts else chapter_record["pageStart"],
+                "pageEnd": max(chapter_page_ends) if chapter_page_ends else chapter_record["pageEnd"],
             }
         )
 
@@ -1043,6 +1220,16 @@ def main() -> None:
         "chaptersWithImages": sum(1 for chapter in built_chapters if chapter["hasImage"]),
         "missingPageCodes": sorted(set(code for code in missing_page_codes if code)),
     }
+    chapter_start_by_slug = {chapter["slug"]: chapter.get("pageStart") for chapter in chapters_in_order}
+    uncovered_non_toc_text_pages = collect_uncovered_non_toc_text_pages(
+        inventory_page_map,
+        toc["parts"],
+        chapter_start_by_slug,
+        section_entries,
+        excluded_pages=toc_pages,
+    )
+    coverage_report["uncoveredNonTocTextPageCount"] = len(uncovered_non_toc_text_pages)
+    coverage_report["uncoveredNonTocTextPages"] = uncovered_non_toc_text_pages
 
     write_json("document-data.json", document_data)
     write_json("search-index.json", search_index)
