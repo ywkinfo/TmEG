@@ -11,13 +11,13 @@ export const CATEGORY_LABELS: Record<string, string> = {
 
 export function stripGuideDots(value: string | null | undefined): string {
   return String(value ?? "")
-    .replace(/·+/g, " ")
+    .replace(/[·․]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 }
 
 export function normalizeText(value: string | null | undefined): string {
-  return stripGuideDots(value).toLowerCase();
+  return stripGuideDots(value).replace(/\s+/g, "").toLowerCase();
 }
 
 export function formatDateTime(value: string | null | undefined): string {

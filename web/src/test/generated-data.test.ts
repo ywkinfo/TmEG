@@ -445,4 +445,147 @@ describe("adaptGeneratedData", () => {
     expect(chapter?.sectionCatalog[0]?.pageCode).toBeNull();
     expect(resolveCanonicalChapterRoute(chapter!, undefined).canonicalPath).toBe("/chapter/%EC%A0%84%EB%AC%B8-%EB%B2%94%EB%A1%80");
   });
+
+  it("keeps search aliases searchable without adding them to the chapter outline and preserves bare chapter routes", () => {
+    const data = adaptGeneratedData({
+      manifest: {
+        title: "상표심사기준",
+        syncedAt: "2026-04-13T00:00:00.000Z",
+        fileCount: 5,
+        imageFileCount: 0,
+      },
+      toc: {
+        meta: {
+          title: "상표심사기준",
+          partCount: 1,
+          chapterCount: 1,
+          itemCount: 1,
+          supplementCount: 0,
+        },
+        parts: [
+          {
+            id: "part-1",
+            label: "제1부",
+            title: "총 칙",
+            fullTitle: "제1부 총 칙",
+            chapters: [
+              {
+                id: "chapter-1",
+                label: "제1장",
+                title: "제1장 목적",
+                fullTitle: "제1장 목적",
+                pageCode: "10101",
+                items: [{ id: "section-1" }],
+                supplements: [],
+              },
+            ],
+          },
+        ],
+      },
+      documentData: {
+        meta: {
+          title: "상표심사기준",
+          builtAt: "2026-04-13T00:00:00.000Z",
+          chapterCount: 1,
+          pageCount: 30,
+          partCount: 1,
+        },
+        chapters: [
+          {
+            id: "chapter-1",
+            slug: "chapter-1",
+            title: "제1장 목적",
+            summary: "목적 요약",
+            html: '<section id="part-cover"><p>총칙 표지</p></section><section id="overview"><h2>제1장 목적</h2></section><section id="section-1"><h3>1. 심사기준의 목적</h3></section>',
+            hasImage: true,
+            imageCount: 1,
+            headings: [{ id: "section-1", depth: 3, title: "1. 심사기준의 목적" }],
+            partTitle: "제1부 총 칙",
+            pageCode: "10101",
+            pageStart: 25,
+            pageEnd: 26,
+          },
+        ],
+      },
+      searchIndex: [
+        {
+          id: "chapter-1-part-cover",
+          chapterSlug: "chapter-1",
+          chapterTitle: "제1장 목적",
+          sectionId: "part-cover",
+          sectionTitle: "총칙",
+          text: "제1부 총 칙",
+          excerpt: "총칙 표지",
+          entryType: "part-cover",
+          partTitle: "제1부 총 칙",
+          pageCode: null,
+          pageStart: 23,
+          pageEnd: 23,
+          hasImage: true,
+          imageCount: 1,
+          categories: [],
+        },
+        {
+          id: "chapter-1-overview",
+          chapterSlug: "chapter-1",
+          chapterTitle: "제1장 목적",
+          sectionId: "overview",
+          sectionTitle: "개요",
+          text: "목적 요약",
+          excerpt: "목적 요약",
+          entryType: "overview",
+          partTitle: "제1부 총 칙",
+          pageCode: "10101",
+          pageStart: 25,
+          pageEnd: 25,
+          hasImage: false,
+          imageCount: 0,
+          categories: [],
+        },
+        {
+          id: "section-1",
+          chapterSlug: "chapter-1",
+          chapterTitle: "제1장 목적",
+          sectionId: "section-1",
+          sectionTitle: "1. 심사기준의 목적",
+          text: "상표법의 목적",
+          excerpt: "상표법의 목적",
+          entryType: "item",
+          partTitle: "제1부 총 칙",
+          pageCode: "10101",
+          pageStart: 25,
+          pageEnd: 26,
+          hasImage: false,
+          imageCount: 0,
+          categories: [],
+        },
+        {
+          id: "chapter-1-alias-23",
+          chapterSlug: "chapter-1",
+          chapterTitle: "제1장 목적",
+          sectionId: "overview",
+          sectionTitle: "제1부 총칙",
+          text: "제1부 총칙",
+          excerpt: "제1부 총칙",
+          entryType: "search-alias",
+          partTitle: "제1부 총 칙",
+          pageCode: null,
+          pageStart: 23,
+          pageEnd: 23,
+          hasImage: false,
+          imageCount: 0,
+          categories: ["supplement"],
+        },
+      ],
+      explorationIndex: [],
+    });
+
+    const chapter = data.chapterMap.get("chapter-1");
+
+    expect(chapter?.sectionCatalog.map((entry) => entry.sectionId)).toEqual(["part-cover", "overview", "section-1"]);
+    expect(data.searchEntries.some((entry) => entry.entryType === "search-alias")).toBe(true);
+    expect(chapter?.sectionCatalog.some((entry) => entry.entryType === "search-alias")).toBe(false);
+    expect(resolveCanonicalChapterRoute(chapter!, undefined).canonicalPath).toBe("/chapter/chapter-1");
+    expect(resolveCanonicalChapterRoute(chapter!, "part-cover").canonicalPath).toBe("/chapter/chapter-1/part-cover");
+  });
 });

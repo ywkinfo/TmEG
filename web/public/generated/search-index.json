@@ -51,6 +51,23 @@
     "categories": []
   },
   {
+    "id": "제1장-목적-part-cover",
+    "chapterSlug": "제1장-목적",
+    "chapterTitle": "제1장 목적··················································································································",
+    "sectionId": "part-cover",
+    "sectionTitle": "총칙",
+    "text": "1",
+    "excerpt": "1",
+    "entryType": "part-cover",
+    "partTitle": "제1부 총 칙",
+    "pageCode": null,
+    "pageStart": 23,
+    "pageEnd": 23,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
+  },
+  {
     "id": "제1장-목적-overview",
     "chapterSlug": "제1장-목적",
     "chapterTitle": "제1장 목적··················································································································",
@@ -618,6 +635,25 @@
     "categories": []
   },
   {
+    "id": "제1장-상표의-정의-및-권리구분-part-cover",
+    "chapterSlug": "제1장-상표의-정의-및-권리구분",
+    "chapterTitle": "제1장 상표의 정의 및 권리구분············································································",
+    "sectionId": "part-cover",
+    "sectionTitle": "상표등록출원",
+    "text": "2",
+    "excerpt": "2",
+    "entryType": "part-cover",
+    "partTitle": "제2부 상표등록출원",
+    "pageCode": null,
+    "pageStart": 75,
+    "pageEnd": 75,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "procedure"
+    ]
+  },
+  {
     "id": "제1장-상표의-정의-및-권리구분-overview",
     "chapterSlug": "제1장-상표의-정의-및-권리구분",
     "chapterTitle": "제1장 상표의 정의 및 권리구분············································································",
@@ -1172,6 +1208,25 @@
     ]
   },
   {
+    "id": "제1장-출원의-보정-part-cover",
+    "chapterSlug": "제1장-출원의-보정",
+    "chapterTitle": "제1장 출원의 보정····································································································",
+    "sectionId": "part-cover",
+    "sectionTitle": "출원의 보정·분할·변경",
+    "text": "3",
+    "excerpt": "3",
+    "entryType": "part-cover",
+    "partTitle": "제3부 출원의 보정·분할·변경",
+    "pageCode": null,
+    "pageStart": 125,
+    "pageEnd": 125,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "procedure"
+    ]
+  },
+  {
     "id": "제1장-출원의-보정-overview",
     "chapterSlug": "제1장-출원의-보정",
     "chapterTitle": "제1장 출원의 보정····································································································",
@@ -1674,6 +1729,25 @@
     "imageCount": 0,
     "categories": [
       "procedure"
+    ]
+  },
+  {
+    "id": "제1장-상품의-보통명칭인-상표-part-cover",
+    "chapterSlug": "제1장-상품의-보통명칭인-상표",
+    "chapterTitle": "제1장 상품의 보통명칭인 상표··············································································",
+    "sectionId": "part-cover",
+    "sectionTitle": "상표등록의 요건",
+    "text": "4",
+    "excerpt": "4",
+    "entryType": "part-cover",
+    "partTitle": "제4부 상표등록의 요건",
+    "pageCode": null,
+    "pageStart": 157,
+    "pageEnd": 157,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "requirements"
     ]
   },
   {
@@ -2215,6 +2289,23 @@
     "categories": []
   },
   {
+    "id": "제8장-식별력-없는-표장간의-결합상표-overview",
+    "chapterSlug": "제8장-식별력-없는-표장간의-결합상표",
+    "chapterTitle": "제8장 식별력 없는 표장간의 결합상표································································",
+    "sectionId": "overview",
+    "sectionTitle": "개요",
+    "text": "개요",
+    "excerpt": "개요",
+    "entryType": "overview",
+    "partTitle": "제4부 상표등록의 요건",
+    "pageCode": "40801",
+    "pageStart": 205,
+    "pageEnd": 204,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
+  },
+  {
     "id": "1-식별력-유무-판단원칙",
     "chapterSlug": "제8장-식별력-없는-표장간의-결합상표",
     "chapterTitle": "제8장 식별력 없는 표장간의 결합상표································································",
@@ -2336,6 +2427,23 @@
     "categories": [
       "caution"
     ]
+  },
+  {
+    "id": "제1장-국기국장-등과-동일유사한-상표-part-cover",
+    "chapterSlug": "제1장-국기국장-등과-동일유사한-상표",
+    "chapterTitle": "제1장 국기·국장 등과 동일·유사한 상표·························································",
+    "sectionId": "part-cover",
+    "sectionTitle": "상표등록을 받을 수 없는 상표",
+    "text": "5\n\n상표등록을\n\n받을 수 없는 상표",
+    "excerpt": "5 상표등록을 받을 수 없는 상표",
+    "entryType": "part-cover",
+    "partTitle": "제5부 상표등록을 받을 수 없는 상표",
+    "pageCode": null,
+    "pageStart": 213,
+    "pageEnd": 213,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
   },
   {
     "id": "제1장-국기국장-등과-동일유사한-상표-overview",
@@ -4613,6 +4721,25 @@
     ]
   },
   {
+    "id": "제1장-심사절차-part-cover",
+    "chapterSlug": "제1장-심사절차",
+    "chapterTitle": "제1장 심사절차·············································································································",
+    "sectionId": "part-cover",
+    "sectionTitle": "심사일반",
+    "text": "6",
+    "excerpt": "6",
+    "entryType": "part-cover",
+    "partTitle": "제6부 심사일반",
+    "pageCode": null,
+    "pageStart": 351,
+    "pageEnd": 351,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "procedure"
+    ]
+  },
+  {
     "id": "제1장-심사절차-overview",
     "chapterSlug": "제1장-심사절차",
     "chapterTitle": "제1장 심사절차·············································································································",
@@ -4628,6 +4755,25 @@
     "hasImage": false,
     "imageCount": 0,
     "categories": []
+  },
+  {
+    "id": "1-심사절차도",
+    "chapterSlug": "제1장-심사절차",
+    "chapterTitle": "제1장 심사절차·············································································································",
+    "sectionId": "1-심사절차도",
+    "sectionTitle": "1. 심사절차도·······································································································",
+    "text": "1. 심사절차도·······································································································",
+    "excerpt": "1. 심사절차도·······································································································",
+    "entryType": "item",
+    "partTitle": "제6부 심사일반",
+    "pageCode": "60107",
+    "pageStart": 359,
+    "pageEnd": 359,
+    "hasImage": true,
+    "imageCount": 1,
+    "categories": [
+      "procedure"
+    ]
   },
   {
     "id": "2-심사의-일반원칙",
@@ -5214,6 +5360,25 @@
     ]
   },
   {
+    "id": "제1장-업무표장-part-cover",
+    "chapterSlug": "제1장-업무표장",
+    "chapterTitle": "제1장 업무표장·································································································",
+    "sectionId": "part-cover",
+    "sectionTitle": "상표 이외의 권리에 대한 심사",
+    "text": "7\n\n상표 이외의\n\n권리에 대한 심사",
+    "excerpt": "7 상표 이외의 권리에 대한 심사",
+    "entryType": "part-cover",
+    "partTitle": "제7부 상표 이외의 권리에 대한 심사",
+    "pageCode": null,
+    "pageStart": 407,
+    "pageEnd": 407,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "procedure"
+    ]
+  },
+  {
     "id": "제1장-업무표장-overview",
     "chapterSlug": "제1장-업무표장",
     "chapterTitle": "제1장 업무표장·································································································",
@@ -5644,6 +5809,25 @@
     ]
   },
   {
+    "id": "제1장-입체상표-part-cover",
+    "chapterSlug": "제1장-입체상표",
+    "chapterTitle": "제1장 입체상표··········································································································",
+    "sectionId": "part-cover",
+    "sectionTitle": "비전형상표에 대한 심사",
+    "text": "8",
+    "excerpt": "8",
+    "entryType": "part-cover",
+    "partTitle": "제8부 비전형상표에 대한 심사",
+    "pageCode": null,
+    "pageStart": 455,
+    "pageEnd": 455,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "procedure"
+    ]
+  },
+  {
     "id": "제1장-입체상표-overview",
     "chapterSlug": "제1장-입체상표",
     "chapterTitle": "제1장 입체상표··········································································································",
@@ -5756,6 +5940,23 @@
     ]
   },
   {
+    "id": "제2장-색채만으로-된-상표-overview",
+    "chapterSlug": "제2장-색채만으로-된-상표",
+    "chapterTitle": "제2장 색채만으로 된 상표······················································································",
+    "sectionId": "overview",
+    "sectionTitle": "개요",
+    "text": "개요",
+    "excerpt": "개요",
+    "entryType": "overview",
+    "partTitle": "제8부 비전형상표에 대한 심사",
+    "pageCode": "80201",
+    "pageStart": 471,
+    "pageEnd": 470,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
+  },
+  {
     "id": "1-색채상표의-개념",
     "chapterSlug": "제2장-색채만으로-된-상표",
     "chapterTitle": "제2장 색채만으로 된 상표······················································································",
@@ -5849,6 +6050,23 @@
     ]
   },
   {
+    "id": "제3장-홀로그램상표-overview",
+    "chapterSlug": "제3장-홀로그램상표",
+    "chapterTitle": "제3장 홀로그램상표··································································································",
+    "sectionId": "overview",
+    "sectionTitle": "개요",
+    "text": "개요",
+    "excerpt": "개요",
+    "entryType": "overview",
+    "partTitle": "제8부 비전형상표에 대한 심사",
+    "pageCode": "80301",
+    "pageStart": 477,
+    "pageEnd": 476,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
+  },
+  {
     "id": "1-홀로그램상표의-개념",
     "chapterSlug": "제3장-홀로그램상표",
     "chapterTitle": "제3장 홀로그램상표··································································································",
@@ -5923,6 +6141,23 @@
     "categories": [
       "procedure"
     ]
+  },
+  {
+    "id": "제4장-동작상표-overview",
+    "chapterSlug": "제4장-동작상표",
+    "chapterTitle": "제4장 동작상표··········································································································",
+    "sectionId": "overview",
+    "sectionTitle": "개요",
+    "text": "개요",
+    "excerpt": "개요",
+    "entryType": "overview",
+    "partTitle": "제8부 비전형상표에 대한 심사",
+    "pageCode": "80401",
+    "pageStart": 481,
+    "pageEnd": 480,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
   },
   {
     "id": "1-동작상표의-개념",
@@ -6111,6 +6346,23 @@
     ]
   },
   {
+    "id": "제6장-소리상표-overview",
+    "chapterSlug": "제6장-소리상표",
+    "chapterTitle": "제6장 소리상표··········································································································",
+    "sectionId": "overview",
+    "sectionTitle": "개요",
+    "text": "개요",
+    "excerpt": "개요",
+    "entryType": "overview",
+    "partTitle": "제8부 비전형상표에 대한 심사",
+    "pageCode": "80601",
+    "pageStart": 491,
+    "pageEnd": 490,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
+  },
+  {
     "id": "1-소리상표의-개념",
     "chapterSlug": "제6장-소리상표",
     "chapterTitle": "제6장 소리상표··········································································································",
@@ -6240,6 +6492,23 @@
     "categories": [
       "procedure"
     ]
+  },
+  {
+    "id": "제7장-냄새상표-overview",
+    "chapterSlug": "제7장-냄새상표",
+    "chapterTitle": "제7장 냄새상표··········································································································",
+    "sectionId": "overview",
+    "sectionTitle": "개요",
+    "text": "개요",
+    "excerpt": "개요",
+    "entryType": "overview",
+    "partTitle": "제8부 비전형상표에 대한 심사",
+    "pageCode": "80701",
+    "pageStart": 497,
+    "pageEnd": 496,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
   },
   {
     "id": "1-냄새상표의-개념",
@@ -6375,6 +6644,25 @@
     ]
   },
   {
+    "id": "제1장-지정상품-심사의-특례-part-cover",
+    "chapterSlug": "제1장-지정상품-심사의-특례",
+    "chapterTitle": "제1장 지정상품 심사의 특례··················································································",
+    "sectionId": "part-cover",
+    "sectionTitle": "국제상표심사기준의 특례",
+    "text": "9",
+    "excerpt": "9",
+    "entryType": "part-cover",
+    "partTitle": "제9부 국제상표심사기준의 특례",
+    "pageCode": null,
+    "pageStart": 503,
+    "pageEnd": 503,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "procedure"
+    ]
+  },
+  {
     "id": "제1장-지정상품-심사의-특례-overview",
     "chapterSlug": "제1장-지정상품-심사의-특례",
     "chapterTitle": "제1장 지정상품 심사의 특례··················································································",
@@ -6428,6 +6716,23 @@
     "categories": [
       "procedure"
     ]
+  },
+  {
+    "id": "제2장-보정의-특례-overview",
+    "chapterSlug": "제2장-보정의-특례",
+    "chapterTitle": "제2장 보정의 특례····································································································",
+    "sectionId": "overview",
+    "sectionTitle": "개요",
+    "text": "개요",
+    "excerpt": "개요",
+    "entryType": "overview",
+    "partTitle": "제9부 국제상표심사기준의 특례",
+    "pageCode": "90201",
+    "pageStart": 507,
+    "pageEnd": 506,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
   },
   {
     "id": "1-보정을-할-수-없는-경우",
@@ -6832,6 +7137,23 @@
     ]
   },
   {
+    "id": "제7장-감축limitation에-대한-심사-overview",
+    "chapterSlug": "제7장-감축limitation에-대한-심사",
+    "chapterTitle": "제7장 감축(Limitation)에 대한 심사·······································································",
+    "sectionId": "overview",
+    "sectionTitle": "개요",
+    "text": "개요",
+    "excerpt": "개요",
+    "entryType": "overview",
+    "partTitle": "제9부 국제상표심사기준의 특례",
+    "pageCode": "90701",
+    "pageStart": 523,
+    "pageEnd": 522,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
+  },
+  {
     "id": "1-감축의-의의",
     "chapterSlug": "제7장-감축limitation에-대한-심사",
     "chapterTitle": "제7장 감축(Limitation)에 대한 심사·······································································",
@@ -7107,6 +7429,40 @@
     "categories": []
   },
   {
+    "id": "제1장-하자있는-처분에-대한-처리-part-cover",
+    "chapterSlug": "제1장-하자있는-처분에-대한-처리",
+    "chapterTitle": "제1장 하자있는 처분에 대한 처리······································································",
+    "sectionId": "part-cover",
+    "sectionTitle": "보칙",
+    "text": "10",
+    "excerpt": "10",
+    "entryType": "part-cover",
+    "partTitle": "제10부 보 칙",
+    "pageCode": null,
+    "pageStart": 531,
+    "pageEnd": 531,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
+  },
+  {
+    "id": "제1장-하자있는-처분에-대한-처리-overview",
+    "chapterSlug": "제1장-하자있는-처분에-대한-처리",
+    "chapterTitle": "제1장 하자있는 처분에 대한 처리······································································",
+    "sectionId": "overview",
+    "sectionTitle": "개요",
+    "text": "개요",
+    "excerpt": "개요",
+    "entryType": "overview",
+    "partTitle": "제10부 보 칙",
+    "pageCode": "100101",
+    "pageStart": 533,
+    "pageEnd": 532,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
+  },
+  {
     "id": "1-규정의-취지",
     "chapterSlug": "제1장-하자있는-처분에-대한-처리",
     "chapterTitle": "제1장 하자있는 처분에 대한 처리······································································",
@@ -7175,6 +7531,23 @@
     "categories": []
   },
   {
+    "id": "제2장-외국어상표에-대한-심사-overview",
+    "chapterSlug": "제2장-외국어상표에-대한-심사",
+    "chapterTitle": "제2장 외국어상표에 대한 심사············································································",
+    "sectionId": "overview",
+    "sectionTitle": "개요",
+    "text": "개요",
+    "excerpt": "개요",
+    "entryType": "overview",
+    "partTitle": "제10부 보 칙",
+    "pageCode": "100201",
+    "pageStart": 535,
+    "pageEnd": 534,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
+  },
+  {
     "id": "1-규정의-취지",
     "chapterSlug": "제2장-외국어상표에-대한-심사",
     "chapterTitle": "제2장 외국어상표에 대한 심사············································································",
@@ -7228,6 +7601,23 @@
     "categories": []
   },
   {
+    "id": "부록-부칙-part-cover",
+    "chapterSlug": "부록-부칙",
+    "chapterTitle": "부칙",
+    "sectionId": "part-cover",
+    "sectionTitle": "부칙",
+    "text": "부칙",
+    "excerpt": "부칙",
+    "entryType": "part-cover",
+    "partTitle": "부록",
+    "pageCode": null,
+    "pageStart": 539,
+    "pageEnd": 539,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
+  },
+  {
     "id": "부록-부칙-overview",
     "chapterSlug": "부록-부칙",
     "chapterTitle": "부칙",
@@ -7240,6 +7630,23 @@
     "pageCode": null,
     "pageStart": 541,
     "pageEnd": 542,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": []
+  },
+  {
+    "id": "부록-별첨-part-cover",
+    "chapterSlug": "부록-별첨",
+    "chapterTitle": "별첨",
+    "sectionId": "part-cover",
+    "sectionTitle": "별첨",
+    "text": "별첨",
+    "excerpt": "별첨",
+    "entryType": "part-cover",
+    "partTitle": "부록",
+    "pageCode": null,
+    "pageStart": 543,
+    "pageEnd": 543,
     "hasImage": false,
     "imageCount": 0,
     "categories": []
@@ -7277,5 +7684,119 @@
     "hasImage": false,
     "imageCount": 0,
     "categories": []
+  },
+  {
+    "id": "부록-별첨-overview-alias-545",
+    "chapterSlug": "부록-별첨",
+    "chapterTitle": "별첨",
+    "sectionId": "overview",
+    "sectionTitle": "별첨 1 한-EU FTA에 따라 보호되는 지리적 표시",
+    "text": "별첨\n별첨 1 한-EU FTA에 따라 보호되는 지리적 표시\n부속서 10-가\n농산물 및 식품에 대한 지리적 표시\n제 1 부 유럽연합을 원산지로 하는 농산물 및 식품1)2)\n(제10.18조제4항에 언급된 바와 같이)\n오스트리아\n보호되는 명칭",
+    "excerpt": "별첨 1 한-EU FTA에 따라 보호되는 지리적 표시",
+    "entryType": "search-alias",
+    "partTitle": "부록",
+    "pageCode": null,
+    "pageStart": 545,
+    "pageEnd": 545,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "supplement"
+    ]
+  },
+  {
+    "id": "부록-별첨-overview-alias-569",
+    "chapterSlug": "부록-별첨",
+    "chapterTitle": "별첨",
+    "sectionId": "overview",
+    "sectionTitle": "별첨 2 한-칠레 FTA에 따라 보호되는 지리적 표시",
+    "text": "별첨\n별첨 2 한-칠레 FTA에 따라 보호되는 지리적 표시\n부속서 16.4.3\n한국의 지리적 표시\n보호되는 명칭\n제품\n로마자로의 번역\n한국 인삼",
+    "excerpt": "별첨 2 한-칠레 FTA에 따라 보호되는 지리적 표시",
+    "entryType": "search-alias",
+    "partTitle": "부록",
+    "pageCode": null,
+    "pageStart": 569,
+    "pageEnd": 569,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "supplement"
+    ]
+  },
+  {
+    "id": "부록-별첨-overview-alias-570",
+    "chapterSlug": "부록-별첨",
+    "chapterTitle": "별첨",
+    "sectionId": "overview",
+    "sectionTitle": "별첨 3 한-페루 FTA에 따라 보호되는 지리적 표시",
+    "text": "별첨\n별첨 3 한-페루 FTA에 따라 보호되는 지리적 표시\n부속서 17가\n제1절\n페루의 지리적 표시\n보호되는 명칭\n제품\nPisco Perú(Pisco Peru)",
+    "excerpt": "별첨 3 한-페루 FTA에 따라 보호되는 지리적 표시",
+    "entryType": "search-alias",
+    "partTitle": "부록",
+    "pageCode": null,
+    "pageStart": 570,
+    "pageEnd": 570,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "supplement"
+    ]
+  },
+  {
+    "id": "부록-별첨-overview-alias-572",
+    "chapterSlug": "부록-별첨",
+    "chapterTitle": "별첨",
+    "sectionId": "overview",
+    "sectionTitle": "별첨 4 한-터키 FTA에 따라 보호되는 지리적 표시",
+    "text": "별첨\n별첨 4 한-터키 FTA에 따라 보호되는 지리적 표시\n부속서 2\n제1부. 터키의 지리적 표시\n보호되는 명칭\n제품\n한글로의 음역\nHereke carpet",
+    "excerpt": "별첨 4 한-터키 FTA에 따라 보호되는 지리적 표시",
+    "entryType": "search-alias",
+    "partTitle": "부록",
+    "pageCode": null,
+    "pageStart": 572,
+    "pageEnd": 572,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "supplement"
+    ]
+  },
+  {
+    "id": "부록-별첨-overview-alias-573",
+    "chapterSlug": "부록-별첨",
+    "chapterTitle": "별첨",
+    "sectionId": "overview",
+    "sectionTitle": "별첨 5 한-캐나다 FTA에 따라 보호되는 지리적 표시",
+    "text": "별첨\n별첨 5 한-캐나다 FTA에 따라 보호되는 지리적 표시\n제 16.10 조\n지리적 표시의 보호1)\n1. 한국의 지리적 표시\n보호되는 명칭\n제품\n로마자로의 번역",
+    "excerpt": "별첨 5 한-캐나다 FTA에 따라 보호되는 지리적 표시",
+    "entryType": "search-alias",
+    "partTitle": "부록",
+    "pageCode": null,
+    "pageStart": 573,
+    "pageEnd": 573,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "supplement"
+    ]
+  },
+  {
+    "id": "부록-별첨-overview-alias-574",
+    "chapterSlug": "부록-별첨",
+    "chapterTitle": "별첨",
+    "sectionId": "overview",
+    "sectionTitle": "별첨 6 한-영 FTA에 따라 보호되는 지리적 표시",
+    "text": "별첨\n별첨 6 한-영 FTA에 따라 보호되는 지리적 표시\n부속서 10-나\n포도주, 방향포도주 및 증류주에 관한 지리적 표시\n제1부\n영국을 원산지로 하는 포도주, 방향포도주 및 증류주\n(제 10.18조 제1항에 언급된 바와 같이)\n증류주1)",
+    "excerpt": "별첨 6 한-영 FTA에 따라 보호되는 지리적 표시",
+    "entryType": "search-alias",
+    "partTitle": "부록",
+    "pageCode": null,
+    "pageStart": 574,
+    "pageEnd": 574,
+    "hasImage": false,
+    "imageCount": 0,
+    "categories": [
+      "supplement"
+    ]
   }
 ]

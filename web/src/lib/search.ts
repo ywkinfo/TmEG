@@ -2,6 +2,7 @@ import type { ReaderChapter, ReaderSectionEntry } from "./generated-data";
 import { normalizeText } from "./formatters";
 
 export type WarmedSearchEntry = ReaderSectionEntry & {
+  normalizedPartTitle: string;
   normalizedSectionTitle: string;
   normalizedChapterTitle: string;
   normalizedExcerpt: string;
@@ -14,6 +15,7 @@ export type SearchWarmStatus = "ready" | "empty";
 export function warmSearchEntries(entries: ReaderSectionEntry[]): WarmedSearchEntry[] {
   return entries.map((entry) => ({
     ...entry,
+    normalizedPartTitle: normalizeText(entry.partTitle),
     normalizedSectionTitle: normalizeText(entry.sectionTitle),
     normalizedChapterTitle: normalizeText(entry.chapterTitle),
     normalizedExcerpt: normalizeText(entry.excerpt),
@@ -36,6 +38,26 @@ export function buildWarmedSearchState(entries: ReaderSectionEntry[]): {
   };
 }
 
+function scoreFieldMatch(
+  haystack: string,
+  normalizedQuery: string,
+  scoreMap: { exact: number; startsWith: number; includes: number }
+): number {
+  if (!haystack || !normalizedQuery) {
+    return 0;
+  }
+  if (haystack === normalizedQuery) {
+    return scoreMap.exact;
+  }
+  if (haystack.startsWith(normalizedQuery)) {
+    return scoreMap.startsWith;
+  }
+  if (haystack.includes(normalizedQuery)) {
+    return scoreMap.includes;
+  }
+  return 0;
+}
+
 export function rankSearchResults(entries: WarmedSearchEntry[], query: string, limit = 10): WarmedSearchEntry[] {
   const normalizedQuery = normalizeText(query);
   if (!normalizedQuery) {
@@ -46,21 +68,31 @@ export function rankSearchResults(entries: WarmedSearchEntry[], query: string, l
     .map((entry) => {
       let score = 0;
 
-      if (entry.normalizedSectionTitle.includes(normalizedQuery)) {
-        score += 6;
-      }
-      if (entry.normalizedChapterTitle.includes(normalizedQuery)) {
-        score += 4;
-      }
-      if (entry.normalizedExcerpt.includes(normalizedQuery)) {
-        score += 2;
-      }
-      if (entry.normalizedText.includes(normalizedQuery)) {
-        score += 1;
-      }
-      if (entry.entryType === "overview") {
-        score += 1;
-      }
+      score += scoreFieldMatch(entry.normalizedSectionTitle, normalizedQuery, {
+        exact: 120,
+        startsWith: 90,
+        includes: 60,
+      });
+      score += scoreFieldMatch(entry.normalizedChapterTitle, normalizedQuery, {
+        exact: 100,
+        startsWith: 75,
+        includes: 48,
+      });
+      score += scoreFieldMatch(entry.normalizedPartTitle, normalizedQuery, {
+        exact: 72,
+        startsWith: 48,
+        includes: 30,
+      });
+      score += scoreFieldMatch(entry.normalizedExcerpt, normalizedQuery, {
+        exact: 24,
+        startsWith: 14,
+        includes: 8,
+      });
+      score += scoreFieldMatch(entry.normalizedText, normalizedQuery, {
+        exact: 18,
+        startsWith: 10,
+        includes: 6,
+      });
 
       return score > 0 ? { entry, score } : null;
     })
@@ -68,6 +100,12 @@ export function rankSearchResults(entries: WarmedSearchEntry[], query: string, l
     .sort((left, right) => {
       if (right.score !== left.score) {
         return right.score - left.score;
+      }
+
+      const leftSpan = (left.entry.pageEnd ?? left.entry.pageStart ?? 0) - (left.entry.pageStart ?? 0);
+      const rightSpan = (right.entry.pageEnd ?? right.entry.pageStart ?? 0) - (right.entry.pageStart ?? 0);
+      if (leftSpan !== rightSpan) {
+        return leftSpan - rightSpan;
       }
 
       return (left.entry.pageStart ?? 0) - (right.entry.pageStart ?? 0);
@@ -96,10 +134,31 @@ export function resolveSearchNavigation(input: {
     return input.results[0].routePath;
   }
 
-  const matchingChapter = input.chapters.find((chapter) => {
-    const chapterHaystack = normalizeText(`${chapter.displayTitle} ${chapter.partTitle}`);
-    return chapterHaystack.includes(normalizedQuery);
-  });
+  const chapterScores = input.chapters
+    .map((chapter) => {
+      const normalizedChapterTitle = normalizeText(chapter.displayTitle);
+      const normalizedPartTitle = normalizeText(chapter.partTitle);
+      const score =
+        scoreFieldMatch(normalizedChapterTitle, normalizedQuery, {
+          exact: 120,
+          startsWith: 90,
+          includes: 60,
+        }) +
+        scoreFieldMatch(normalizedPartTitle, normalizedQuery, {
+          exact: 80,
+          startsWith: 56,
+          includes: 32,
+        });
 
-  return matchingChapter?.sectionCatalog[0]?.routePath ?? null;
+      return score > 0 ? { chapter, score } : null;
+    })
+    .filter((value): value is { chapter: ReaderChapter; score: number } => value !== null)
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+      return (left.chapter.pageStart ?? 0) - (right.chapter.pageStart ?? 0);
+    });
+
+  return chapterScores[0]?.chapter.sectionCatalog[0]?.routePath ?? null;
 }

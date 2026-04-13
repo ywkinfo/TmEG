@@ -79,9 +79,27 @@ export function TopbarSearch({ searchEntries, chapters, onFocusSearch }: TopbarS
     }, 80);
   }
 
+  function ensureWarmedEntries(): ReturnType<typeof warmSearchEntries> {
+    if (warmedEntries) {
+      return warmedEntries;
+    }
+
+    if (warmTimeoutRef.current !== null) {
+      window.clearTimeout(warmTimeoutRef.current);
+      warmTimeoutRef.current = null;
+    }
+
+    const nextState = buildWarmedSearchState(searchEntries);
+    setWarmedEntries(nextState.entries);
+    setSearchUiState(nextState.status);
+    return nextState.entries;
+  }
+
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    const routePath = resolveSearchNavigation({ query, results: visibleResults, activeIndex, chapters });
+    const resolvedResults =
+      visibleResults.length > 0 || !query.trim() ? visibleResults : rankSearchResults(ensureWarmedEntries(), query, 9);
+    const routePath = resolveSearchNavigation({ query, results: resolvedResults, activeIndex, chapters });
     if (!routePath) {
       return;
     }
