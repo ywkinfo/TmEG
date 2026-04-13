@@ -14,8 +14,11 @@ build_inventory_page_map = build_content.build_inventory_page_map
 build_next_chapter_start_map = build_content.build_next_chapter_start_map
 build_next_part_map = build_content.build_next_part_map
 cap_entry_end_page = build_content.cap_entry_end_page
+collect_uncovered_non_toc_text_pages = build_content.collect_uncovered_non_toc_text_pages
+derive_part_intro_title = build_content.derive_part_intro_title
 extend_end_page_for_next_sibling = build_content.extend_end_page_for_next_sibling
 extend_overview_end_page_for_leading_content = build_content.extend_overview_end_page_for_leading_content
+find_part_intro_page_range = build_content.find_part_intro_page_range
 find_appendix_boundary_page = build_content.find_appendix_boundary_page
 find_next_part_boundary_page = build_content.find_next_part_boundary_page
 is_appendix_boundary_page = build_content.is_appendix_boundary_page
@@ -163,6 +166,22 @@ GOODS_REVIEW_TABLE_BLOCK_TEXTS = [
     "2.2 판단시점",
 ]
 
+GENERIC_NAME_EXAMPLE_TABLE_BLOCK_TEXTS = [
+    "1.1 ‘상품의 보통명칭에 해당’할 것",
+    "본호에서 규정하는 『그 상품의 보통명칭』이란 그 상품의 명칭, 약칭, 속칭, 기타 당해 상품을 취급하는 거래사회에서 그 상품을 지칭하는 것으로 실제로 사용되고 인식되어 있는 명칭을 말한다. 따라서 상표의 관념으로부터 유추하여 단순히 일반수요자가 상품의 보통명칭으로 인식할 우려가 있다는 것만으로는 이에 해당하지 않는다.",
+    "《보통명칭 사례》",
+    "지정상품\n상 표\n지정상품\n상 표포장용 필름",
+    "랲(96후1224)",
+    "자동차용 전구",
+    "Truck Lite(96후986)",
+    "커피음료",
+    "Caffé Latté(02후321)",
+    "화 장 품",
+    "Foundation(01후89)",
+    "위 장 약\n정로환(92후827)\n건 과 자\n콘치프(88후455)가구재료\n호마이카(86후93)\n복 사 기\nCOPYER(86후67)요 식 업\n카페, 그릴(99허2068)\n통 신 업\n컴퓨터통신",
+    "1.2 상품의 보통명칭이 ‘보통으로 사용하는 방법으로 표시’되어 있을 것",
+]
+
 YOJI_CHANGE_EXAMPLE_TABLE_BLOCK_TEXTS = [
     "1.6.6 포괄명칭을 그 명칭에 포함되는 구체적인 명칭으로 세분하는 경우(해당 포괄명칭을 그대로 둔 채 세분하는 경우를 포함한다)에는 요지변경으로 보지 아니한다(규칙§33-4).",
     "《요지변경에 해당되지 않는 경우 예시》",
@@ -171,7 +190,6 @@ YOJI_CHANGE_EXAMPLE_TABLE_BLOCK_TEXTS = [
     "김치\n김치, 총각김치, 파김치",
     "1.6.7 법 제34조제1항제7호 단서 또는 법 제35조제6항에 따른 상표등록에 대한 동의 사실을 증명할 수 있는 서류를 제출하거나 수정하는 경우에는 요지변경으로 보지 아니한다(규칙§33-5).",
 ]
-
 ONE_MARK_ONE_APPLICATION_TABLE_BLOCK_TEXTS = [
     "1.2 1상표 1출원 위반유형에 따른 심사처리방법",
     "출원인이 1상표 1출원을 위반하여 출원한 경우 다음 표와 같이 처리하되, 출원인에게 거절이유통지시 해당하는 상표, 지정상품의 삭제보정 및 분할 가능 여부를 함께 통지하여야 한다.",
@@ -1003,6 +1021,25 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertLess(html.rindex('reader-synthetic-figure'), html.index('2.2 판단시점'))
         self.assertEqual(blocks_to_text(blocks), "\n\n".join(GOODS_REVIEW_TABLE_BLOCK_TEXTS))
 
+    def test_blocks_to_html_reconstructs_allowlisted_generic_name_example_table(self) -> None:
+        blocks = make_text_blocks(GENERIC_NAME_EXAMPLE_TABLE_BLOCK_TEXTS, page_number=161, page_code="40101")
+
+        html = blocks_to_html(blocks, section_title="1. 적용요건")
+
+        self.assertEqual(html.count('reader-synthetic-figure'), 1)
+        self.assertEqual(html.count('<table>'), 1)
+        self.assertIn('<th scope="col">지정상품</th>', html)
+        self.assertIn('<th scope="col">상 표</th>', html)
+        self.assertIn('<td>포장용 필름</td>', html)
+        self.assertIn('<td>랲(96후1224)</td>', html)
+        self.assertIn('<td>자동차용 전구</td>', html)
+        self.assertIn('<td>Truck Lite(96후986)</td>', html)
+        self.assertIn('<td>화 장 품</td>', html)
+        self.assertIn('<td>컴퓨터통신</td>', html)
+        self.assertLess(html.index('《보통명칭 사례》'), html.index('reader-synthetic-figure'))
+        self.assertLess(html.index('reader-synthetic-figure'), html.index('1.2 상품의 보통명칭이 ‘보통으로 사용하는 방법으로 표시’되어 있을 것'))
+        self.assertEqual(blocks_to_text(blocks), "\n\n".join(GENERIC_NAME_EXAMPLE_TABLE_BLOCK_TEXTS))
+
     def test_blocks_to_html_reconstructs_allowlisted_yoji_change_example_table(self) -> None:
         blocks = make_text_blocks(YOJI_CHANGE_EXAMPLE_TABLE_BLOCK_TEXTS, page_number=137, page_code="30207")
 
@@ -1268,6 +1305,18 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertIn('<p>구   분<br />협의의 포괄명칭<br />광의의 포괄명칭</p>', html)
         self.assertIn('해당하는 상품 또는 유사상품군', html)
         self.assertIn('(G4503) 등 포함', html)
+
+    def test_blocks_to_html_falls_back_for_incomplete_generic_name_example_table_cluster(self) -> None:
+        texts = GENERIC_NAME_EXAMPLE_TABLE_BLOCK_TEXTS[:-2] + GENERIC_NAME_EXAMPLE_TABLE_BLOCK_TEXTS[-1:]
+        blocks = make_text_blocks(texts, page_number=161, page_code="40101")
+
+        html = blocks_to_html(blocks, section_title="1. 적용요건")
+
+        self.assertNotIn('reader-synthetic-figure', html)
+        self.assertNotIn('<table>', html)
+        self.assertIn('<p>지정상품<br />상 표<br />지정상품<br />상 표포장용 필름</p>', html)
+        self.assertIn('Truck Lite(96후986)', html)
+        self.assertIn('Caffé Latté(02후321)', html)
 
     def test_blocks_to_html_does_not_reconstruct_comparison_tables_outside_allowlisted_section(self) -> None:
         blocks = [
@@ -2895,6 +2944,107 @@ class ContentGuardrailsTest(unittest.TestCase):
         boundary_page = find_next_part_boundary_page(page_blocks, 156, 160, next_part)
 
         self.assertEqual(boundary_page, 157)
+
+    def test_find_part_intro_page_range_detects_pre_first_chapter_orphan_pages(self) -> None:
+        inventory_page_map = build_inventory_page_map(
+            {
+                "pages": [
+                    {"pageNumber": 158, "pageCode": None, "charCount": 0, "hasText": False, "topLines": []},
+                    {
+                        "pageNumber": 159,
+                        "pageCode": None,
+                        "charCount": 982,
+                        "hasText": True,
+                        "topLines": ["제4부 상표등록의 요건", "상표의 식별력"],
+                    },
+                    {
+                        "pageNumber": 160,
+                        "pageCode": None,
+                        "charCount": 885,
+                        "hasText": True,
+                        "topLines": ["제4부 상표등록의 요건", "4. 법 제33조제1항 각 호의 차이"],
+                    },
+                    {
+                        "pageNumber": 161,
+                        "pageCode": "40101",
+                        "charCount": 763,
+                        "hasText": True,
+                        "topLines": ["제1장 상품의 보통명칭인 상표"],
+                    },
+                ]
+            }
+        )
+
+        self.assertEqual(
+            find_part_intro_page_range(
+                inventory_page_map,
+                "제4부 상표등록의 요건",
+                161,
+            ),
+            (159, 160),
+        )
+
+    def test_derive_part_intro_title_strips_running_header(self) -> None:
+        blocks = make_text_blocks(
+            [
+                "제4부 상표등록의 요건",
+                "상표의 식별력",
+                "1. 식별력(Distinctiveness)의 의의",
+            ],
+            page_number=159,
+            page_code="40101",
+        )
+
+        self.assertEqual(
+            derive_part_intro_title(
+                blocks,
+                part_title="제4부 상표등록의 요건",
+                chapter_title="제1장 상품의 보통명칭인 상표",
+                fallback_label="제4부",
+            ),
+            "상표의 식별력",
+        )
+
+    def test_collect_uncovered_non_toc_text_pages_reports_uncovered_inventory_pages(self) -> None:
+        inventory_page_map = build_inventory_page_map(
+            {
+                "pages": [
+                    {"pageNumber": 159, "pageCode": None, "charCount": 982, "hasText": True, "topLines": ["제4부 상표등록의 요건", "상표의 식별력"]},
+                    {"pageNumber": 160, "pageCode": None, "charCount": 885, "hasText": True, "topLines": ["제4부 상표등록의 요건", "4. 법 제33조제1항 각 호의 차이"]},
+                    {"pageNumber": 161, "pageCode": "40101", "charCount": 763, "hasText": True, "topLines": ["제1장 상품의 보통명칭인 상표"]},
+                ]
+            }
+        )
+        section_entries = [
+            {"id": "chapter-4-overview", "pageStart": 161, "pageEnd": 161},
+        ]
+        parts = [
+            {
+                "id": "part-4",
+                "label": "제4부",
+                "title": "상표등록의 요건",
+                "fullTitle": "제4부 상표등록의 요건",
+                "chapters": [{"id": "chapter-4"}],
+            }
+        ]
+        chapter_start_by_slug = {"chapter-4": 161}
+
+        self.assertEqual(
+            collect_uncovered_non_toc_text_pages(
+                inventory_page_map,
+                parts,
+                chapter_start_by_slug,
+                section_entries,
+            ),
+            [
+                {"pageNumber": 159, "pageCode": None, "topLines": ["제4부 상표등록의 요건", "상표의 식별력"]},
+                {
+                    "pageNumber": 160,
+                    "pageCode": None,
+                    "topLines": ["제4부 상표등록의 요건", "4. 법 제33조제1항 각 호의 차이"],
+                },
+            ],
+        )
 
     def test_is_appendix_boundary_page_requires_null_page_code_and_marker(self) -> None:
         self.assertTrue(is_appendix_boundary_page({"pageCode": None, "topLines": ["부 칙"]}))

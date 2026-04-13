@@ -85,7 +85,7 @@ type GeneratedSearchEntry = {
   excerpt: string;
   entryType: string;
   partTitle: string;
-  pageCode: string;
+  pageCode: string | null;
   pageStart: number;
   pageEnd: number;
   hasImage: boolean;
@@ -99,7 +99,7 @@ type GeneratedExplorationEntry = {
   chapterTitle: string;
   partTitle: string;
   categories?: string[];
-  pageCode: string;
+  pageCode: string | null;
   pageStart: number;
   pageEnd: number;
   hasImage: boolean;
@@ -116,7 +116,7 @@ export type ReaderSectionEntry = {
   text: string;
   excerpt: string;
   entryType: string;
-  pageCode: string;
+  pageCode: string | null;
   pageStart: number;
   pageEnd: number;
   hasImage: boolean;
@@ -165,7 +165,7 @@ export type ReaderExplorationEntry = {
   chapterDisplayTitle: string;
   partTitle: string;
   categories: string[];
-  pageCode: string;
+  pageCode: string | null;
   pageStart: number;
   pageEnd: number;
   hasImage: boolean;
@@ -192,7 +192,7 @@ export function resolveCanonicalChapterRoute(
   chapter: ReaderChapter,
   requestedSectionId: string | undefined
 ): { activeSectionId: string; canonicalPath: string } {
-  const normalizedSectionId = requestedSectionId ?? "overview";
+  const normalizedSectionId = requestedSectionId ?? chapter.sectionCatalog[0]?.sectionId ?? "overview";
   const matchingEntry = chapter.sectionCatalog.find((entry) => entry.sectionId === normalizedSectionId);
 
   if (matchingEntry) {
@@ -318,12 +318,26 @@ export function adaptGeneratedData(input: {
       }
 
       rawEntries.sort((left, right) => {
-        if (left.sectionId === "overview") {
-          return -1;
+        const order = (entry: ReaderSectionEntry): number => {
+          if (entry.entryType === "part-intro") {
+            return 0;
+          }
+          if (entry.sectionId === "overview") {
+            return 1;
+          }
+          return 2;
+        };
+
+        const leftOrder = order(left);
+        const rightOrder = order(right);
+        if (leftOrder !== rightOrder) {
+          return leftOrder - rightOrder;
         }
-        if (right.sectionId === "overview") {
-          return 1;
+
+        if (left.pageStart !== right.pageStart) {
+          return (left.pageStart ?? 0) - (right.pageStart ?? 0);
         }
+
         return (left.pageStart ?? 0) - (right.pageStart ?? 0);
       });
 

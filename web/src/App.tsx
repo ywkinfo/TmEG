@@ -130,7 +130,7 @@ function ChapterPage({ data }: { data: ReaderData }): JSX.Element {
   const sectionMatch = useMatch("/chapter/:chapterSlug/:sectionId");
   const chapterMatch = useMatch("/chapter/:chapterSlug");
   const chapterSlug = sectionMatch?.params.chapterSlug ?? chapterMatch?.params.chapterSlug ?? "";
-  const requestedSectionId = sectionMatch?.params.sectionId ?? "overview";
+  const requestedSectionId = sectionMatch?.params.sectionId;
 
   const chapter = data.chapterMap.get(chapterSlug);
   if (!chapter) {

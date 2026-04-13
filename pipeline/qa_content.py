@@ -141,6 +141,16 @@ def main() -> None:
     if coverage["unmappedSectionCount"] != 0:
         errors.append(f"unmappedSectionCount: {coverage['unmappedSectionCount']}")
 
+    if coverage.get("uncoveredNonTocTextPageCount", 0) != 0:
+        uncovered_pages = coverage.get("uncoveredNonTocTextPages", [])
+        preview = ", ".join(
+            str(page.get("pageNumber")) for page in uncovered_pages[:10] if page.get("pageNumber") is not None
+        )
+        errors.append(
+            "uncovered non-TOC text pages: "
+            + (preview if preview else str(coverage.get("uncoveredNonTocTextPageCount")))
+        )
+
     for image in image_manifest.get("images", []):
         image_id = image.get("id", "<unknown>")
         relative_path = image.get("relativePath")

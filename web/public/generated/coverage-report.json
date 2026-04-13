@@ -9,12 +9,14 @@
   "tocSupplementCount": 2,
   "mappedChapterCount": 85,
   "unmappedChapterCount": 0,
-  "mappedSectionCount": 406,
+  "mappedSectionCount": 407,
   "unmappedSectionCount": 0,
   "fallbackPageStartCount": 1,
   "imageFileCount": 260,
   "excludedImageCount": 81,
   "totalImageBytes": 2177953,
   "chaptersWithImages": 35,
-  "missingPageCodes": []
+  "missingPageCodes": [],
+  "uncoveredNonTocTextPageCount": 0,
+  "uncoveredNonTocTextPages": []
 }

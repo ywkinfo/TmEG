@@ -237,4 +237,123 @@ describe("adaptGeneratedData", () => {
     const overviewSection = resolveCanonicalChapterRoute(chapter!, "overview");
     expect(overviewSection.canonicalPath).toBe("/chapter/chapter-a");
   });
+
+  it("orders part-intro entries before overview and redirects bare chapter routes to them", () => {
+    const data = adaptGeneratedData({
+      manifest: {
+        title: "상표심사기준",
+        syncedAt: "2026-04-11T00:00:00.000Z",
+        fileCount: 5,
+        imageFileCount: 0,
+      },
+      toc: {
+        meta: {
+          title: "상표심사기준",
+          partCount: 1,
+          chapterCount: 1,
+          itemCount: 1,
+          supplementCount: 0,
+        },
+        parts: [
+          {
+            id: "part-4",
+            label: "제4부",
+            title: "상표등록의 요건",
+            fullTitle: "제4부 상표등록의 요건",
+            chapters: [
+              {
+                id: "chapter-4-1",
+                label: "제1장",
+                title: "제1장 상품의 보통명칭인 상표",
+                fullTitle: "제1장 상품의 보통명칭인 상표",
+                pageCode: "40101",
+                items: [{ id: "section-1" }],
+                supplements: [],
+              },
+            ],
+          },
+        ],
+      },
+      documentData: {
+        meta: {
+          title: "상표심사기준",
+          builtAt: "2026-04-11T00:00:00.000Z",
+          chapterCount: 1,
+          pageCount: 3,
+          partCount: 1,
+        },
+        chapters: [
+          {
+            id: "chapter-4-1",
+            slug: "chapter-4-1",
+            title: "제1장 상품의 보통명칭인 상표",
+            summary: "상표의 식별력 요약",
+            html: '<section id="overview"><h2>제1장 상품의 보통명칭인 상표</h2></section><section id="part-intro"><h3>상표의 식별력</h3></section><section id="section-1"><h3>1. 적용요건</h3></section>',
+            hasImage: false,
+            imageCount: 0,
+            headings: [{ id: "section-1", depth: 3, title: "1. 적용요건" }],
+            partTitle: "제4부 상표등록의 요건",
+            pageCode: "40101",
+            pageStart: 161,
+            pageEnd: 162,
+          },
+        ],
+      },
+      searchIndex: [
+        {
+          id: "chapter-4-1-part-intro",
+          chapterSlug: "chapter-4-1",
+          chapterTitle: "제1장 상품의 보통명칭인 상표",
+          sectionId: "part-intro",
+          sectionTitle: "상표의 식별력",
+          text: "식별력 도입 본문",
+          excerpt: "식별력 도입 요약",
+          entryType: "part-intro",
+          partTitle: "제4부 상표등록의 요건",
+          pageCode: null,
+          pageStart: 159,
+          pageEnd: 160,
+          hasImage: false,
+          imageCount: 0,
+          categories: [],
+        },
+        {
+          id: "section-1",
+          chapterSlug: "chapter-4-1",
+          chapterTitle: "제1장 상품의 보통명칭인 상표",
+          sectionId: "section-1",
+          sectionTitle: "1. 적용요건",
+          text: "적용요건 본문",
+          excerpt: "적용요건 요약",
+          entryType: "item",
+          partTitle: "제4부 상표등록의 요건",
+          pageCode: "40101",
+          pageStart: 161,
+          pageEnd: 162,
+          hasImage: false,
+          imageCount: 0,
+          categories: [],
+        },
+      ],
+      explorationIndex: [
+        {
+          id: "chapter-4-1-part-intro",
+          title: "상표의 식별력",
+          chapterTitle: "제1장 상품의 보통명칭인 상표",
+          partTitle: "제4부 상표등록의 요건",
+          categories: [],
+          pageCode: null,
+          pageStart: 159,
+          pageEnd: 160,
+          hasImage: false,
+          excerpt: "식별력 도입 요약",
+        },
+      ],
+    });
+
+    const chapter = data.chapterMap.get("chapter-4-1");
+    expect(chapter?.sectionCatalog.map((entry) => entry.sectionId)).toEqual(["part-intro", "overview", "section-1"]);
+    expect(resolveCanonicalChapterRoute(chapter!, undefined).canonicalPath).toBe("/chapter/chapter-4-1/part-intro");
+    expect(data.explorationEntries[0]?.routePath).toBe("/chapter/chapter-4-1/part-intro");
+  });
 });
