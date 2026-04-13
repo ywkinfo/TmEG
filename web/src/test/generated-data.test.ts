@@ -356,4 +356,93 @@ describe("adaptGeneratedData", () => {
     expect(resolveCanonicalChapterRoute(chapter!, undefined).canonicalPath).toBe("/chapter/chapter-4-1/part-intro");
     expect(data.explorationEntries[0]?.routePath).toBe("/chapter/chapter-4-1/part-intro");
   });
+
+  it("keeps chapter-level null pageCode for synthetic chapters and resolves overview routes normally", () => {
+    const data = adaptGeneratedData({
+      manifest: {
+        title: "상표심사기준",
+        syncedAt: "2026-04-13T00:00:00.000Z",
+        fileCount: 5,
+        imageFileCount: 0,
+      },
+      toc: {
+        meta: {
+          title: "상표심사기준",
+          partCount: 1,
+          chapterCount: 1,
+          itemCount: 0,
+          supplementCount: 0,
+        },
+        parts: [
+          {
+            id: "front-matter",
+            label: "전문",
+            title: "전문",
+            fullTitle: "전문",
+            chapters: [
+              {
+                id: "전문-범례",
+                label: "범례",
+                title: "범례",
+                fullTitle: "범례",
+                pageCode: null,
+                items: [],
+                supplements: [],
+              },
+            ],
+          },
+        ],
+      },
+      documentData: {
+        meta: {
+          title: "상표심사기준",
+          builtAt: "2026-04-13T00:00:00.000Z",
+          chapterCount: 1,
+          pageCount: 575,
+          partCount: 1,
+        },
+        chapters: [
+          {
+            id: "전문-범례",
+            slug: "전문-범례",
+            title: "범례",
+            summary: "약어 설명",
+            html: '<section id="overview"><h2>범례</h2><p>약어 설명</p></section>',
+            hasImage: false,
+            imageCount: 0,
+            headings: [],
+            partTitle: "전문",
+            pageCode: null,
+            pageStart: 5,
+            pageEnd: 5,
+          },
+        ],
+      },
+      searchIndex: [
+        {
+          id: "전문-범례-overview",
+          chapterSlug: "전문-범례",
+          chapterTitle: "범례",
+          sectionId: "overview",
+          sectionTitle: "개요",
+          text: "약어 설명",
+          excerpt: "약어 설명",
+          entryType: "overview",
+          partTitle: "전문",
+          pageCode: null,
+          pageStart: 5,
+          pageEnd: 5,
+          hasImage: false,
+          imageCount: 0,
+          categories: [],
+        },
+      ],
+      explorationIndex: [],
+    });
+
+    const chapter = data.chapterMap.get("전문-범례");
+    expect(chapter?.pageCode).toBeNull();
+    expect(chapter?.sectionCatalog[0]?.pageCode).toBeNull();
+    expect(resolveCanonicalChapterRoute(chapter!, undefined).canonicalPath).toBe("/chapter/%EC%A0%84%EB%AC%B8-%EB%B2%94%EB%A1%80");
+  });
 });

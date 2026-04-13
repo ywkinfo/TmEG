@@ -10,6 +10,23 @@ from .common import GENERATED_DIR, load_config, load_generated_json, normalize_s
 HTML_TAG_RE = re.compile(r"<[^>]+>")
 IMG_SRC_RE = re.compile(r'<img[^>]+src="([^"]+)"', re.IGNORECASE)
 
+SYNTHETIC_CHAPTER_IDS = (
+    "전문-표지",
+    "전문-제개정연혁",
+    "전문-범례",
+    "부록-부칙",
+    "부록-별첨",
+    "부록-판권",
+)
+REQUIRED_COVERAGE_PAGE_NUMBERS = (
+    1,
+    3,
+    5,
+    541,
+    542,
+    *range(545, 576),
+)
+
 
 def normalize_leading_text(value: str) -> str:
     without_html = HTML_TAG_RE.sub(" ", value or "")
@@ -59,6 +76,8 @@ def collect_guardrail_errors(
     document_title: str,
 ) -> list[str]:
     errors: list[str] = []
+    chapter_by_id = {chapter.get("id"): chapter for chapter in document_data.get("chapters", [])}
+    search_entry_by_id = {entry.get("id"): entry for entry in search_index}
 
     for chapter in document_data.get("chapters", []):
         chapter_id = chapter.get("id", "<unknown>")
@@ -87,6 +106,31 @@ def collect_guardrail_errors(
             errors.append(f"exploration entry starts on toc page: {entry_id} -> {page_start}")
         if looks_like_toc_text(entry.get("excerpt", ""), document_title):
             errors.append(f"exploration entry excerpt looks like toc: {entry_id}")
+
+    for chapter_id in SYNTHETIC_CHAPTER_IDS:
+        chapter = chapter_by_id.get(chapter_id)
+        if chapter is None:
+            errors.append(f"synthetic chapter missing: {chapter_id}")
+            continue
+
+        page_start = int(chapter.get("pageStart") or 0)
+        page_end = int(chapter.get("pageEnd") or 0)
+        if page_start <= 0 or page_end <= 0:
+            errors.append(f"synthetic chapter missing page range: {chapter_id}")
+        elif any(page_number in toc_pages for page_number in range(page_start, page_end + 1)):
+            errors.append(f"synthetic chapter overlaps toc pages: {chapter_id} -> {page_start}-{page_end}")
+
+        overview_entry = search_entry_by_id.get(f"{chapter_id}-overview")
+        if overview_entry is None or not normalize_leading_text(str(overview_entry.get("text", ""))):
+            errors.append(f"synthetic chapter has empty overview text: {chapter_id}")
+
+    for page_number in REQUIRED_COVERAGE_PAGE_NUMBERS:
+        if not any(
+            int(entry.get("pageStart") or 0) <= page_number <= int(entry.get("pageEnd") or 0)
+            for entry in search_index
+            if entry.get("pageStart") is not None and entry.get("pageEnd") is not None
+        ):
+            errors.append(f"required coverage page missing from search ranges: {page_number}")
 
     return errors
 

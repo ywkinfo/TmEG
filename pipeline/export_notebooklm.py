@@ -22,17 +22,39 @@ NOTEBOOKLM_DIR = GENERATED_DIR / "notebooklm"
 PROVENANCE_DERIVED = "search-index.json, toc.json, image-manifest.json"
 
 PART_OUTPUT_SPECS = (
-    {"index": 1, "title": "제1부 총칙", "filename": "03-제1부-총칙.md"},
-    {"index": 2, "title": "제2부 상표등록출원", "filename": "04-제2부-상표등록출원.md"},
-    {"index": 3, "title": "제3부 출원의 보정·분할·변경", "filename": "05-제3부-출원의-보정·분할·변경.md"},
-    {"index": 4, "title": "제4부 상표등록의 요건", "filename": "06-제4부-상표등록의-요건.md"},
-    {"index": 5, "title": "제5부(상)", "filename": "07-제5부(상).md", "endBeforeLabel": "제13장"},
-    {"index": 5, "title": "제5부(하)", "filename": "08-제5부(하).md", "startLabel": "제13장"},
-    {"index": 6, "title": "제6부 심사일반", "filename": "09-제6부-심사일반.md"},
-    {"index": 7, "title": "제7부 상표 이외의 권리", "filename": "10-제7부-상표-이외의-권리.md"},
-    {"index": 8, "title": "제8부 비전형상표", "filename": "11-제8부-비전형상표.md"},
-    {"index": 9, "title": "제9부 국제상표 특례", "filename": "12-제9부-국제상표-특례.md"},
-    {"index": 10, "title": "제10부 보칙", "filename": "13-제10부-보칙.md"},
+    {"partTitle": "제1부 총칙", "title": "제1부 총칙", "filename": "03-제1부-총칙.md"},
+    {"partTitle": "제2부 상표등록출원", "title": "제2부 상표등록출원", "filename": "04-제2부-상표등록출원.md"},
+    {"partTitle": "제3부 출원의 보정·분할·변경", "title": "제3부 출원의 보정·분할·변경", "filename": "05-제3부-출원의-보정·분할·변경.md"},
+    {"partTitle": "제4부 상표등록의 요건", "title": "제4부 상표등록의 요건", "filename": "06-제4부-상표등록의-요건.md"},
+    {
+        "partTitle": "제5부 상표등록을 받을 수 없는 상표",
+        "title": "제5부(상)",
+        "filename": "07-제5부(상).md",
+        "endBeforeLabel": "제13장",
+    },
+    {
+        "partTitle": "제5부 상표등록을 받을 수 없는 상표",
+        "title": "제5부(하)",
+        "filename": "08-제5부(하).md",
+        "startLabel": "제13장",
+    },
+    {"partTitle": "제6부 심사일반", "title": "제6부 심사일반", "filename": "09-제6부-심사일반.md"},
+    {
+        "partTitle": "제7부 상표 이외의 권리에 대한 심사",
+        "title": "제7부 상표 이외의 권리",
+        "filename": "10-제7부-상표-이외의-권리.md",
+    },
+    {
+        "partTitle": "제8부 비전형상표에 대한 심사",
+        "title": "제8부 비전형상표",
+        "filename": "11-제8부-비전형상표.md",
+    },
+    {
+        "partTitle": "제9부 국제상표심사기준의 특례",
+        "title": "제9부 국제상표 특례",
+        "filename": "12-제9부-국제상표-특례.md",
+    },
+    {"partTitle": "제10부 보칙", "title": "제10부 보칙", "filename": "13-제10부-보칙.md"},
 )
 
 DOT_LEADER_RE = re.compile(r"[·ㆍ.]{2,}.*$")
@@ -67,6 +89,8 @@ CIRCLED_DIGITS = {
     "⑲": 19,
     "⑳": 20,
 }
+
+
 def normalize_outline_title(value: str) -> str:
     return normalize_line(DOT_LEADER_RE.sub("", value).strip())
 
@@ -175,11 +199,11 @@ def build_structure_map(config: dict[str, Any], toc: dict[str, Any], generated_d
         for chapter in part["chapters"]:
             lines.append(f"  - {clean_title(chapter['fullTitle'])}")
             for item in chapter.get("items", []):
-                lines.append(f"    - {clean_title(item['fullTitle'])} ({item['pageCode']})")
+                lines.append(f"    - {clean_title(item['fullTitle'])} ({item.get('pageCode') or ''})")
             for supplement in chapter.get("supplements", []):
                 lines.append(f"    - {clean_title(supplement['fullTitle'])}")
                 for item in supplement.get("items", []):
-                    lines.append(f"      - {clean_title(item['fullTitle'])} ({item['pageCode']})")
+                    lines.append(f"      - {clean_title(item['fullTitle'])} ({item.get('pageCode') or ''})")
 
     return "\n".join(lines).rstrip() + "\n"
 
@@ -297,6 +321,17 @@ def slice_chapters(
     return chapters[start_index:end_index]
 
 
+def find_part_for_output_spec(toc: dict[str, Any], spec: dict[str, Any]) -> dict[str, Any]:
+    expected_title = str(spec["partTitle"])
+    normalized_expected = clean_title(expected_title)
+
+    for part in toc["parts"]:
+        if clean_title(str(part.get("fullTitle", ""))) == normalized_expected:
+            return part
+
+    raise KeyError(f"toc part not found for notebooklm export: {expected_title}")
+
+
 def build_part_documents(
     config: dict[str, Any],
     search_index: list[dict[str, Any]],
@@ -315,7 +350,7 @@ def build_part_documents(
 
     documents: dict[str, str] = {}
     for spec in PART_OUTPUT_SPECS:
-        toc_part = toc["parts"][spec["index"] - 1]
+        toc_part = find_part_for_output_spec(toc, spec)
         chapters = toc_part["chapters"]
         chapters = slice_chapters(
             chapters=chapters,
@@ -339,7 +374,7 @@ def build_part_documents(
             )
 
             lines.append(
-                f"## {clean_title(chapter['fullTitle'])} ({chapter['pageCode']}, pp. {chapter_start}-{chapter_end})"
+                f"## {clean_title(chapter['fullTitle'])} ({chapter.get('pageCode') or ''}, pp. {chapter_start}-{chapter_end})"
             )
 
             for entry in chapter_entries:

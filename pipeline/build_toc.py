@@ -23,6 +23,97 @@ CHAPTER_RE = re.compile(r"^(제\s*\d+\s*장)\s*(.+?)\s*(\d{5,6})$")
 SUPPLEMENT_RE = re.compile(r"^(보충기준\s*\d+)\s*:\s*(.+?)\s*(\d{5,6})$")
 ITEM_RE = re.compile(r"^(\d+)\s*\.?\s+(.+?)\s*(\d{5,6})$")
 
+SYNTHETIC_PART_SPECS: list[dict[str, Any]] = [
+    {
+        "id": "전문",
+        "label": "전문",
+        "title": "전문",
+        "fullTitle": "전문",
+        "chapters": [
+            {
+                "id": "전문-표지",
+                "label": "표지",
+                "title": "표지",
+                "fullTitle": "표지",
+                "pageCode": None,
+                "fallbackPageStart": 1,
+                "fixedPageEnd": 1,
+                "synthetic": True,
+                "items": [],
+                "supplements": [],
+            },
+            {
+                "id": "전문-제개정연혁",
+                "label": "제·개정 연혁",
+                "title": "제·개정 연혁",
+                "fullTitle": "제·개정 연혁",
+                "pageCode": None,
+                "fallbackPageStart": 3,
+                "fixedPageEnd": 3,
+                "synthetic": True,
+                "items": [],
+                "supplements": [],
+            },
+            {
+                "id": "전문-범례",
+                "label": "범례",
+                "title": "범례",
+                "fullTitle": "범례",
+                "pageCode": None,
+                "fallbackPageStart": 5,
+                "fixedPageEnd": 5,
+                "synthetic": True,
+                "items": [],
+                "supplements": [],
+            },
+        ],
+    },
+    {
+        "id": "부록",
+        "label": "부록",
+        "title": "부록",
+        "fullTitle": "부록",
+        "chapters": [
+            {
+                "id": "부록-부칙",
+                "label": "부칙",
+                "title": "부칙",
+                "fullTitle": "부칙",
+                "pageCode": None,
+                "fallbackPageStart": 541,
+                "fixedPageEnd": 542,
+                "synthetic": True,
+                "items": [],
+                "supplements": [],
+            },
+            {
+                "id": "부록-별첨",
+                "label": "별첨",
+                "title": "별첨",
+                "fullTitle": "별첨",
+                "pageCode": None,
+                "fallbackPageStart": 545,
+                "fixedPageEnd": 574,
+                "synthetic": True,
+                "items": [],
+                "supplements": [],
+            },
+            {
+                "id": "부록-판권",
+                "label": "판권",
+                "title": "판권",
+                "fullTitle": "판권",
+                "pageCode": None,
+                "fallbackPageStart": 575,
+                "fixedPageEnd": 575,
+                "synthetic": True,
+                "items": [],
+                "supplements": [],
+            },
+        ],
+    },
+]
+
 
 def normalize_toc_line(value: str) -> str:
     normalized = " ".join(value.split()).strip()
@@ -228,11 +319,95 @@ def parse_entries(entry_lines: list[str]) -> dict[str, Any]:
     }
 
 
+def clone_synthetic_part(part_spec: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": part_spec["id"],
+        "label": part_spec["label"],
+        "title": part_spec["title"],
+        "fullTitle": part_spec["fullTitle"],
+        "chapters": [
+            {
+                **chapter_spec,
+                "items": list(chapter_spec.get("items", [])),
+                "supplements": list(chapter_spec.get("supplements", [])),
+            }
+            for chapter_spec in part_spec["chapters"]
+        ],
+    }
+
+
+def build_synthetic_flat_entries(part_spec: dict[str, Any]) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = [
+        {
+            "kind": "part",
+            "label": part_spec["label"],
+            "title": part_spec["title"],
+            "fullTitle": part_spec["fullTitle"],
+            "pageCode": None,
+        }
+    ]
+    for chapter_spec in part_spec["chapters"]:
+        entries.append(
+            {
+                "kind": "chapter",
+                "label": chapter_spec["label"],
+                "title": chapter_spec["title"],
+                "fullTitle": chapter_spec["fullTitle"],
+                "pageCode": None,
+                "partTitle": part_spec["fullTitle"],
+                "fallbackPageStart": chapter_spec["fallbackPageStart"],
+                "fixedPageEnd": chapter_spec["fixedPageEnd"],
+                "synthetic": True,
+            }
+        )
+    return entries
+
+
+def recalculate_counts(parts: list[dict[str, Any]]) -> dict[str, int]:
+    chapter_count = 0
+    item_count = 0
+    supplement_count = 0
+    for part in parts:
+        chapters = part.get("chapters", [])
+        chapter_count += len(chapters)
+        for chapter in chapters:
+            item_count += len(chapter.get("items", []))
+            supplements = chapter.get("supplements", [])
+            supplement_count += len(supplements)
+            for supplement in supplements:
+                item_count += len(supplement.get("items", []))
+    return {
+        "partCount": len(parts),
+        "chapterCount": chapter_count,
+        "itemCount": item_count,
+        "supplementCount": supplement_count,
+    }
+
+
+def inject_synthetic_parts(parsed: dict[str, Any]) -> dict[str, Any]:
+    front_matter = clone_synthetic_part(SYNTHETIC_PART_SPECS[0])
+    appendix = clone_synthetic_part(SYNTHETIC_PART_SPECS[1])
+
+    parts = [front_matter, *parsed["parts"], appendix]
+    flat_entries = [
+        *build_synthetic_flat_entries(SYNTHETIC_PART_SPECS[0]),
+        *parsed["flatEntries"],
+        *build_synthetic_flat_entries(SYNTHETIC_PART_SPECS[1]),
+    ]
+
+    return {
+        "parts": parts,
+        "flatEntries": flat_entries,
+        "counts": recalculate_counts(parts),
+    }
+
+
 def main() -> None:
     config = load_config()
     toc_pages, toc_lines = collect_toc_lines(config["tocScanPageLimit"])
     entries = coalesce_toc_entries(toc_lines)
     parsed = parse_entries(entries)
+    parsed = inject_synthetic_parts(parsed)
     payload = {
         "meta": {
             "title": config["documentTitle"],

@@ -17,10 +17,13 @@ from .common import (
     make_excerpt,
     open_pdf,
     print_json_summary,
+    render_allowlisted_synthetic_chapter_html,
     strip_running_header_lines,
     text_block_to_text,
     write_json,
 )
+
+SYNTHETIC_COVERAGE_EXCLUDED_PAGE_NUMBERS = {2, 4, 6, 540, 544}
 
 
 def build_code_to_page_map(
@@ -68,6 +71,10 @@ def assign_ranges(entries: list[dict[str, Any]], default_end_page: int) -> list[
 
     for index, entry in enumerate(resolved):
         current_start = entry["pageStart"]
+        fixed_page_end = entry.get("fixedPageEnd")
+        if fixed_page_end is not None:
+            entry["pageEnd"] = max(current_start, fixed_page_end)
+            continue
         next_start = resolved[index + 1]["pageStart"] if index + 1 < len(resolved) else None
         if next_start is None:
             entry["pageEnd"] = default_end_page
@@ -117,6 +124,22 @@ def trim_overview_ranges(
 
 def inventory_page_has_text(page_meta: dict[str, Any]) -> bool:
     return bool(page_meta.get("hasText")) and int(page_meta.get("charCount", 0) or 0) > 0
+
+
+def is_decorative_title_sheet_page(page_meta: dict[str, Any]) -> bool:
+    if page_meta.get("pageCode") is not None or not inventory_page_has_text(page_meta):
+        return False
+
+    char_count = int(page_meta.get("charCount", 0) or 0)
+    if char_count > 25:
+        return False
+
+    top_lines = [clean_title(line) for line in (page_meta.get("topLines") or []) if clean_title(line)]
+    if not top_lines:
+        return False
+    if top_lines[0] in {"부칙", "별첨"}:
+        return True
+    return bool(re.fullmatch(r"\d+", top_lines[0])) and len(top_lines) >= 2
 
 
 def inventory_page_matches_part(page_meta: dict[str, Any], part_title: str) -> bool:
@@ -189,6 +212,8 @@ def collect_uncovered_non_toc_text_pages(
     *,
     excluded_pages: set[int] | None = None,
 ) -> list[dict[str, Any]]:
+    del parts, chapter_start_by_slug
+
     excluded_page_set = excluded_pages or set()
     covered_pages: set[int] = set()
 
@@ -203,33 +228,25 @@ def collect_uncovered_non_toc_text_pages(
             covered_pages.add(page_number)
 
     uncovered_pages: list[dict[str, Any]] = []
-    for part in parts:
-        if not part.get("chapters"):
+    for page_number in sorted(inventory_page_map):
+        if page_number in excluded_page_set:
             continue
-        first_chapter = part["chapters"][0]
-        chapter_start = chapter_start_by_slug.get(first_chapter["id"])
-        intro_range = find_part_intro_page_range(
-            inventory_page_map,
-            part["fullTitle"],
-            chapter_start,
-            excluded_pages=excluded_page_set,
+        if page_number in SYNTHETIC_COVERAGE_EXCLUDED_PAGE_NUMBERS:
+            continue
+        if page_number in covered_pages:
+            continue
+        page_meta = inventory_page_map.get(page_number)
+        if page_meta is None or not inventory_page_has_text(page_meta):
+            continue
+        if is_decorative_title_sheet_page(page_meta):
+            continue
+        uncovered_pages.append(
+            {
+                "pageNumber": page_number,
+                "pageCode": page_meta.get("pageCode"),
+                "topLines": (page_meta.get("topLines") or [])[:3],
+            }
         )
-        if intro_range is None:
-            continue
-
-        for page_number in range(intro_range[0], intro_range[1] + 1):
-            if page_number in excluded_page_set or page_number in covered_pages:
-                continue
-            page_meta = inventory_page_map.get(page_number)
-            if page_meta is None or not inventory_page_has_text(page_meta):
-                continue
-            uncovered_pages.append(
-                {
-                    "pageNumber": page_number,
-                    "pageCode": page_meta.get("pageCode"),
-                    "topLines": (page_meta.get("topLines") or [])[:3],
-                }
-            )
 
     return uncovered_pages
 
@@ -878,7 +895,11 @@ def main() -> None:
 
     for part in toc["parts"]:
         for chapter_index, chapter in enumerate(part["chapters"]):
-            chapter_start, chapter_used_fallback = resolve_page_start(page_code_map, chapter["pageCode"])
+            chapter_start, chapter_used_fallback = resolve_page_start(
+                page_code_map,
+                chapter["pageCode"],
+                fallback_page_start=chapter.get("fallbackPageStart"),
+            )
             if chapter_start is None:
                 missing_page_codes.append(chapter["pageCode"])
             chapter_record = {
@@ -888,7 +909,9 @@ def main() -> None:
                 "partTitle": part["fullTitle"],
                 "pageCode": chapter["pageCode"],
                 "pageStart": chapter_start,
-                "pageEnd": None,
+                "pageEnd": chapter.get("fixedPageEnd"),
+                "fixedPageEnd": chapter.get("fixedPageEnd"),
+                "synthetic": bool(chapter.get("synthetic")),
                 "raw": chapter,
                 "usedFallbackPageStart": chapter_used_fallback,
             }
@@ -940,7 +963,9 @@ def main() -> None:
                     "partTitle": part["fullTitle"],
                     "pageCode": chapter["pageCode"],
                     "pageStart": chapter_start,
-                    "pageEnd": None,
+                    "pageEnd": chapter.get("fixedPageEnd"),
+                    "fixedPageEnd": chapter.get("fixedPageEnd"),
+                    "synthetic": bool(chapter.get("synthetic")),
                     "usedFallbackPageStart": chapter_used_fallback,
                 }
             )
@@ -1046,7 +1071,11 @@ def main() -> None:
                 effective_end_page,
                 page_blocks,
             )
-            if entry["entryType"] == "overview" and len(chapter_entries) == 1:
+            if (
+                entry["entryType"] == "overview"
+                and len(chapter_entries) == 1
+                and not entry.get("synthetic")
+            ):
                 appendix_boundary_page = find_appendix_boundary_page(
                     inventory_page_map,
                     entry["pageStart"],
@@ -1069,7 +1098,13 @@ def main() -> None:
                 section_title="" if entry["entryType"] == "overview" else entry["sectionTitle"],
             )
             entry["text"] = entry_text
-            entry["html"] = blocks_to_html(
+            synthetic_html = None
+            if entry["entryType"] == "overview" and entry.get("synthetic"):
+                synthetic_html = render_allowlisted_synthetic_chapter_html(
+                    entry_blocks,
+                    chapter_title=entry["chapterTitle"],
+                )
+            entry["html"] = synthetic_html or blocks_to_html(
                 entry_blocks,
                 part_title=entry["partTitle"],
                 chapter_title=entry["chapterTitle"],
