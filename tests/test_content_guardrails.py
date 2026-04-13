@@ -788,14 +788,6 @@ class ContentGuardrailsTest(unittest.TestCase):
                 "expected": ["<figcaption>4. 부적법한 변경출원에 대한 처리</figcaption>", "실질적 확장, 출원인 불일치, 상표견본 불일치 등이 있으면 변경출원불인정예고통지를 한다.", "분할출원과 달리 변경 전 최초출원으로 심사를 계속 진행한다."],
             },
             {
-                "section_title": "1. 요지변경이 아닌 경우",
-                "paragraphs": [
-                    "지정상품 범위의 감축은 요지변경이 아니다.",
-                    "명백한 오기의 정정은 요지변경이 아니다.",
-                ],
-                "expected": ["<figcaption>1. 요지변경이 아닌 경우</figcaption>", "불명료한 기재를 석명하는 보정은 요지변경이 아니다.", "상표의 부기적 부분을 삭제하는 보정은 요지변경이 아니다."],
-            },
-            {
                 "section_title": "4. 요지변경인 경우의 처리",
                 "paragraphs": [
                     "보정이 요지변경에 해당하면 보정각하결정을 하여야 한다.",
@@ -855,6 +847,32 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertIn("이 절은 일반 설명 문단이다.", html)
         self.assertIn("다음 문단도 일반 본문으로 이어진다.", html)
         self.assertEqual(blocks_to_text(blocks), "이 절은 일반 설명 문단이다.\n\n다음 문단도 일반 본문으로 이어진다.")
+
+    def test_blocks_to_html_does_not_prepend_removed_synthetic_procedure_figure_for_요지변경이_아닌_경우(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 134,
+                "_pageCode": "30204",
+                "lines": [{"spans": [{"text": "지정상품 범위의 감축은 요지변경이 아니다."}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 134,
+                "_pageCode": "30204",
+                "lines": [{"spans": [{"text": "명백한 오기의 정정은 요지변경이 아니다."}]}],
+            },
+        ]
+
+        html = blocks_to_html(blocks, section_title="1. 요지변경이 아닌 경우")
+
+        self.assertNotIn("reader-synthetic-figure", html)
+        self.assertIn("지정상품 범위의 감축은 요지변경이 아니다.", html)
+        self.assertIn("명백한 오기의 정정은 요지변경이 아니다.", html)
+        self.assertEqual(
+            blocks_to_text(blocks),
+            "지정상품 범위의 감축은 요지변경이 아니다.\n\n명백한 오기의 정정은 요지변경이 아니다.",
+        )
 
     def test_blocks_to_html_reconstructs_allowlisted_comparison_tables(self) -> None:
         blocks = [
