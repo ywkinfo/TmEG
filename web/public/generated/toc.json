@@ -19,12 +19,56 @@
       21,
       22
     ],
-    "partCount": 10,
-    "chapterCount": 85,
+    "partCount": 12,
+    "chapterCount": 91,
     "itemCount": 319,
     "supplementCount": 2
   },
   "parts": [
+    {
+      "id": "전문",
+      "label": "전문",
+      "title": "전문",
+      "fullTitle": "전문",
+      "chapters": [
+        {
+          "id": "전문-표지",
+          "label": "표지",
+          "title": "표지",
+          "fullTitle": "표지",
+          "pageCode": null,
+          "fallbackPageStart": 1,
+          "fixedPageEnd": 1,
+          "synthetic": true,
+          "items": [],
+          "supplements": []
+        },
+        {
+          "id": "전문-제개정연혁",
+          "label": "제·개정 연혁",
+          "title": "제·개정 연혁",
+          "fullTitle": "제·개정 연혁",
+          "pageCode": null,
+          "fallbackPageStart": 3,
+          "fixedPageEnd": 3,
+          "synthetic": true,
+          "items": [],
+          "supplements": []
+        },
+        {
+          "id": "전문-범례",
+          "label": "범례",
+          "title": "범례",
+          "fullTitle": "범례",
+          "pageCode": null,
+          "fallbackPageStart": 5,
+          "fixedPageEnd": 5,
+          "synthetic": true,
+          "items": [],
+          "supplements": []
+        }
+      ]
+    },
     {
       "id": "제1부-총-칙",
       "label": "제1부",
@@ -3205,9 +3249,93 @@
           "supplements": []
         }
       ]
+    },
+    {
+      "id": "부록",
+      "label": "부록",
+      "title": "부록",
+      "fullTitle": "부록",
+      "chapters": [
+        {
+          "id": "부록-부칙",
+          "label": "부칙",
+          "title": "부칙",
+          "fullTitle": "부칙",
+          "pageCode": null,
+          "fallbackPageStart": 541,
+          "fixedPageEnd": 542,
+          "synthetic": true,
+          "items": [],
+          "supplements": []
+        },
+        {
+          "id": "부록-별첨",
+          "label": "별첨",
+          "title": "별첨",
+          "fullTitle": "별첨",
+          "pageCode": null,
+          "fallbackPageStart": 545,
+          "fixedPageEnd": 574,
+          "synthetic": true,
+          "items": [],
+          "supplements": []
+        },
+        {
+          "id": "부록-판권",
+          "label": "판권",
+          "title": "판권",
+          "fullTitle": "판권",
+          "pageCode": null,
+          "fallbackPageStart": 575,
+          "fixedPageEnd": 575,
+          "synthetic": true,
+          "items": [],
+          "supplements": []
+        }
+      ]
     }
   ],
   "flatEntries": [
+    {
+      "kind": "part",
+      "label": "전문",
+      "title": "전문",
+      "fullTitle": "전문",
+      "pageCode": null
+    },
+    {
+      "kind": "chapter",
+      "label": "표지",
+      "title": "표지",
+      "fullTitle": "표지",
+      "pageCode": null,
+      "partTitle": "전문",
+      "fallbackPageStart": 1,
+      "fixedPageEnd": 1,
+      "synthetic": true
+    },
+    {
+      "kind": "chapter",
+      "label": "제·개정 연혁",
+      "title": "제·개정 연혁",
+      "fullTitle": "제·개정 연혁",
+      "pageCode": null,
+      "partTitle": "전문",
+      "fallbackPageStart": 3,
+      "fixedPageEnd": 3,
+      "synthetic": true
+    },
+    {
+      "kind": "chapter",
+      "label": "범례",
+      "title": "범례",
+      "fullTitle": "범례",
+      "pageCode": null,
+      "partTitle": "전문",
+      "fallbackPageStart": 5,
+      "fixedPageEnd": 5,
+      "synthetic": true
+    },
     {
       "kind": "part",
       "label": "제1부",
@@ -7165,6 +7293,46 @@
       "fullTitle": "제3장 심사절차의 중지··························································································",
       "pageCode": "100301",
       "partTitle": "제10부 보 칙"
+    },
+    {
+      "kind": "part",
+      "label": "부록",
+      "title": "부록",
+      "fullTitle": "부록",
+      "pageCode": null
+    },
+    {
+      "kind": "chapter",
+      "label": "부칙",
+      "title": "부칙",
+      "fullTitle": "부칙",
+      "pageCode": null,
+      "partTitle": "부록",
+      "fallbackPageStart": 541,
+      "fixedPageEnd": 542,
+      "synthetic": true
+    },
+    {
+      "kind": "chapter",
+      "label": "별첨",
+      "title": "별첨",
+      "fullTitle": "별첨",
+      "pageCode": null,
+      "partTitle": "부록",
+      "fallbackPageStart": 545,
+      "fixedPageEnd": 574,
+      "synthetic": true
+    },
+    {
+      "kind": "chapter",
+      "label": "판권",
+      "title": "판권",
+      "fullTitle": "판권",
+      "pageCode": null,
+      "partTitle": "부록",
+      "fallbackPageStart": 575,
+      "fixedPageEnd": 575,
+      "synthetic": true
     }
   ]
 }

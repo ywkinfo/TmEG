@@ -38,7 +38,7 @@ type GeneratedChapterToc = {
   label: string;
   title: string;
   fullTitle: string;
-  pageCode: string;
+  pageCode: string | null;
   items: Array<{ id: string }>;
   supplements: Array<{ id: string }>;
 };
@@ -64,7 +64,7 @@ type GeneratedDocumentChapter = {
   imageCount: number;
   headings: GeneratedHeading[];
   partTitle: string;
-  pageCode: string;
+  pageCode: string | null;
   pageStart: number;
   pageEnd: number;
 };
@@ -134,7 +134,7 @@ export type ReaderChapter = {
   partTitle: string;
   summary: string;
   html: string;
-  pageCode: string;
+  pageCode: string | null;
   pageStart: number;
   pageEnd: number;
   hasImage: boolean;

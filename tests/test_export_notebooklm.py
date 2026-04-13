@@ -4,6 +4,7 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 from pipeline.common import load_config, load_generated_json
 from pipeline.export_notebooklm import clean_title, export_notebooklm, extract_law_refs, strip_running_header
@@ -157,6 +158,78 @@ class NotebookLMExportTest(unittest.TestCase):
 
             guide = (Path(tmp) / "00-문서안내.md").read_text(encoding="utf-8")
             self.assertIn("> 생성일: 2026-04-12", guide)
+
+    def test_export_renders_null_chapter_page_code_as_blank(self) -> None:
+        config = {"documentTitle": "상표심사기준", "sourcePdf": "data/source/상표심사기준.pdf"}
+        search_index = [
+            {
+                "id": "section-1",
+                "chapterSlug": "chapter-1",
+                "chapterTitle": "제1장 목적",
+                "sectionId": "section-1",
+                "sectionTitle": "1. 심사기준의 목적",
+                "entryType": "item",
+                "text": "본문",
+                "pageStart": 25,
+                "pageEnd": 25,
+                "partTitle": "제1부 총 칙",
+                "pageCode": None,
+            }
+        ]
+        toc = {
+            "meta": {
+                "title": "상표심사기준",
+                "partCount": 2,
+                "chapterCount": 1,
+                "itemCount": 0,
+                "supplementCount": 0,
+            },
+            "parts": [
+                {
+                    "id": "front-matter",
+                    "label": "전문",
+                    "title": "전문",
+                    "fullTitle": "전문",
+                    "chapters": [],
+                },
+                {
+                    "id": "part-1",
+                    "label": "제1부",
+                    "title": "총 칙",
+                    "fullTitle": "제1부 총 칙",
+                    "chapters": [
+                        {
+                            "id": "chapter-1",
+                            "label": "제1장",
+                            "title": "목적",
+                            "fullTitle": "제1장 목적",
+                            "pageCode": None,
+                            "items": [],
+                            "supplements": [],
+                        }
+                    ],
+                },
+            ],
+        }
+        image_manifest = {"images": []}
+
+        with tempfile.TemporaryDirectory() as tmp:
+            with mock.patch(
+                "pipeline.export_notebooklm.PART_OUTPUT_SPECS",
+                ({"partTitle": "제1부 총칙", "title": "제1부 총칙", "filename": "03-제1부-총칙.md"},),
+            ):
+                export_notebooklm(
+                    config=config,
+                    search_index=search_index,
+                    toc=toc,
+                    image_manifest=image_manifest,
+                    output_dir=Path(tmp),
+                    generated_date="2026-04-13",
+                )
+
+            chapter_doc = (Path(tmp) / "03-제1부-총칙.md").read_text(encoding="utf-8")
+            self.assertIn("## 제1장 목적 (, pp. 25-25)", chapter_doc)
+            self.assertNotIn("None", chapter_doc)
 
 
 if __name__ == "__main__":

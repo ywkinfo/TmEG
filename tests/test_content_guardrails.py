@@ -13,6 +13,7 @@ build_code_to_page_map = build_content.build_code_to_page_map
 build_inventory_page_map = build_content.build_inventory_page_map
 build_next_chapter_start_map = build_content.build_next_chapter_start_map
 build_next_part_map = build_content.build_next_part_map
+assign_ranges = build_content.assign_ranges
 cap_entry_end_page = build_content.cap_entry_end_page
 collect_uncovered_non_toc_text_pages = build_content.collect_uncovered_non_toc_text_pages
 derive_part_intro_title = build_content.derive_part_intro_title
@@ -29,6 +30,7 @@ slice_entry_blocks = build_content.slice_entry_blocks
 trim_overview_ranges = build_content.trim_overview_ranges
 blocks_to_html = common.blocks_to_html
 blocks_to_text = common.blocks_to_text
+render_allowlisted_synthetic_chapter_html = common.render_allowlisted_synthetic_chapter_html
 build_manifest_image_paths = importlib.import_module("pipeline.qa_content").build_manifest_image_paths
 collect_guardrail_errors = importlib.import_module("pipeline.qa_content").collect_guardrail_errors
 
@@ -117,6 +119,32 @@ def make_image_block(
         "_relativePath": relative_path,
         "_pageNumber": page_number,
         "_pageCode": page_code,
+    }
+
+
+def make_raw_text_block(
+    rows: list[list[tuple[float, str]]],
+    *,
+    page_number: int = 1,
+    top_start: float = 100.0,
+    row_gap: float = 14.0,
+) -> dict[str, object]:
+    lines = []
+    for row_index, row in enumerate(rows):
+        top = top_start + row_gap * row_index
+        for left, text in row:
+            right = left + max(len(text) * 8, 24)
+            lines.append(
+                {
+                    "bbox": (left, top, right, top + 12),
+                    "spans": [{"text": text}],
+                }
+            )
+    return {
+        "type": 0,
+        "_pageNumber": page_number,
+        "bbox": (0.0, top_start, 500.0, top_start + row_gap * max(len(rows), 1)),
+        "lines": lines,
     }
 
 
@@ -704,6 +732,57 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertIn('<figcaption>p.138 · 30208</figcaption>', html)
         self.assertLess(html.index("앞 문단"), html.index('<figure class="reader-image">'))
         self.assertLess(html.index('<figure class="reader-image">'), html.index("뒤 문단"))
+
+    def test_blocks_to_html_promotes_caption_text_before_image_into_figcaption(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 254,
+                "_pageCode": "50710",
+                "lines": [{"spans": [{"text": "《상표공존동의제 시행 후 심사절차도》"}]}],
+            },
+            {
+                "type": 1,
+                "_relativePath": "generated/images/flow.png",
+                "_pageNumber": 254,
+                "_pageCode": "50710",
+            },
+            {
+                "type": 0,
+                "_pageNumber": 254,
+                "_pageCode": "50710",
+                "lines": [{"spans": [{"text": "뒤 문단"}]}],
+            },
+        ]
+
+        html = blocks_to_html(blocks)
+
+        self.assertIn('src="generated/images/flow.png"', html)
+        self.assertIn('<figcaption>《상표공존동의제 시행 후 심사절차도》</figcaption>', html)
+        self.assertIn('alt="《상표공존동의제 시행 후 심사절차도》"', html)
+        self.assertNotIn('<p>《상표공존동의제 시행 후 심사절차도》</p>', html)
+        self.assertLess(html.index('generated/images/flow.png'), html.index("뒤 문단"))
+
+    def test_blocks_to_html_keeps_caption_text_when_not_followed_by_image(self) -> None:
+        blocks = [
+            {
+                "type": 0,
+                "_pageNumber": 254,
+                "_pageCode": "50710",
+                "lines": [{"spans": [{"text": "《상표공존동의제 시행 후 심사절차도》"}]}],
+            },
+            {
+                "type": 0,
+                "_pageNumber": 254,
+                "_pageCode": "50710",
+                "lines": [{"spans": [{"text": "설명 문단"}]}],
+            },
+        ]
+
+        html = blocks_to_html(blocks)
+
+        self.assertIn('<p>《상표공존동의제 시행 후 심사절차도》</p>', html)
+        self.assertNotIn('<figcaption>《상표공존동의제 시행 후 심사절차도》</figcaption>', html)
 
     def test_blocks_to_html_upgrades_month_end_timeline_cluster_to_synthetic_figure(self) -> None:
         blocks = [
@@ -1375,6 +1454,343 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertEqual(html.count('src="generated/images/example.png"'), 5)
         self.assertIn('《요지변경에 해당하지 않는 경우 또는 해당하는 경우 예시》', html)
 
+    def test_render_allowlisted_synthetic_chapter_html_renders_revision_history_table(self) -> None:
+        html = render_allowlisted_synthetic_chapter_html(
+            [
+                make_raw_text_block([[(160.0, "상표심사기준 제․ 개정 연혁")]], page_number=3, top_start=92.0),
+                make_raw_text_block(
+                    [
+                        [
+                            (204.0, "제    정"),
+                            (257.0, "1993."),
+                            (292.0, "12."),
+                            (317.0, "30."),
+                            (368.0, "특허청 예규"),
+                            (424.0, "제"),
+                            (452.0, "9호"),
+                        ],
+                        [
+                            (204.0, "개    정"),
+                            (257.0, "1996."),
+                            (296.0, "2."),
+                            (317.0, "29."),
+                            (368.0, "특허청 예규"),
+                            (424.0, "제"),
+                            (452.0, "11호"),
+                        ],
+                    ],
+                    page_number=3,
+                    top_start=144.0,
+                ),
+            ],
+            chapter_title="제·개정 연혁",
+        )
+
+        self.assertIsNotNone(html)
+        self.assertIn("<table>", html)
+        self.assertIn("<th scope=\"col\">구분</th>", html)
+        self.assertIn("<td>제정</td>", html)
+        self.assertIn("<td>1993. 12. 30.</td>", html)
+        self.assertIn("<td>특허청 예규 제9호</td>", html)
+
+    def test_render_allowlisted_synthetic_chapter_html_renders_legend_table(self) -> None:
+        html = render_allowlisted_synthetic_chapter_html(
+            [
+                make_raw_text_block([[(63.0, "1. 범례")]], page_number=5, top_start=92.0),
+                make_raw_text_block([[(63.0, "이 심사기준에서 사용하는 약어는 다음과 같다.")]], page_number=5, top_start=113.0),
+                make_raw_text_block([[(94.0, "법            → 상표법")]], page_number=5, top_start=141.0),
+                make_raw_text_block([[(94.0, "영            → 상표법 시행령")]], page_number=5, top_start=162.0),
+                make_raw_text_block([[(94.0, "※ 그 밖의 법령명칭은 전체를 표시함")]], page_number=5, top_start=419.0),
+                make_raw_text_block([[(64.0, "2. 이 심사기준의 적용대상")]], page_number=5, top_start=471.0),
+                make_raw_text_block([[(64.0, "이 심사기준은 심사에 적용한다.")]], page_number=5, top_start=499.0),
+            ],
+            chapter_title="범례",
+        )
+
+        self.assertIsNotNone(html)
+        self.assertIn("<table>", html)
+        self.assertIn("<th scope=\"col\">약어</th>", html)
+        self.assertIn("<td>법</td><td>상표법</td>", html)
+        self.assertIn("2. 이 심사기준의 적용대상", html)
+
+    def test_render_allowlisted_synthetic_chapter_html_renders_appendix_table_sections(self) -> None:
+        html = render_allowlisted_synthetic_chapter_html(
+            [
+                make_raw_text_block([[(64.0, "별 첨")]], page_number=545, top_start=92.0),
+                make_raw_text_block([[(64.0, "별첨 1  한-EU FTA에 따라 보호되는 지리적 표시")]], page_number=545, top_start=120.0),
+                make_raw_text_block([[(64.0, "오스트리아")]], page_number=545, top_start=220.0),
+                {
+                    "type": 0,
+                    "_pageNumber": 545,
+                    "bbox": (0.0, 240.0, 500.0, 252.0),
+                    "lines": [
+                        {"bbox": (102.0, 240.0, 168.0, 252.0), "spans": [{"text": "보호되는 명칭"}]},
+                        {"bbox": (245.0, 240.0, 265.0, 252.0), "spans": [{"text": "제품"}]},
+                        {"bbox": (357.0, 240.0, 423.0, 252.0), "spans": [{"text": "한글로의 음역"}]},
+                    ],
+                },
+                {
+                    "type": 0,
+                    "_pageNumber": 545,
+                    "bbox": (0.0, 260.0, 500.0, 272.0),
+                    "lines": [
+                        {"bbox": (76.0, 260.0, 160.0, 272.0), "spans": [{"text": "Tiroler Speck"}]},
+                        {"bbox": (245.0, 260.0, 260.0, 272.0), "spans": [{"text": "햄"}]},
+                        {"bbox": (315.0, 260.0, 380.0, 272.0), "spans": [{"text": "티롤러 슈페크"}]},
+                    ],
+                },
+                make_raw_text_block([[(64.0, "(2023년 2월 추록)")]], page_number=545, top_start=300.0),
+            ],
+            chapter_title="별첨",
+        )
+
+        self.assertIsNotNone(html)
+        self.assertIn("별첨 1  한-EU FTA에 따라 보호되는 지리적 표시", html)
+        self.assertIn("<table>", html)
+        self.assertIn("<th scope=\"col\">보호되는 명칭</th>", html)
+        self.assertIn("<td>Tiroler Speck</td>", html)
+        self.assertIn("<td>티롤러 슈페크</td>", html)
+
+    def test_render_allowlisted_synthetic_chapter_html_compacts_appendix_table_when_first_column_missing_for_all_rows(self) -> None:
+        html = render_allowlisted_synthetic_chapter_html(
+            [
+                make_raw_text_block([[(64.0, "별 첨")]], page_number=545, top_start=92.0),
+                make_raw_text_block([[(64.0, "체코공화국")]], page_number=545, top_start=220.0),
+                {
+                    "type": 0,
+                    "_pageNumber": 545,
+                    "bbox": (0.0, 240.0, 500.0, 252.0),
+                    "lines": [
+                        {"bbox": (102.0, 240.0, 168.0, 252.0), "spans": [{"text": "보호되는 명칭"}]},
+                        {"bbox": (245.0, 240.0, 265.0, 252.0), "spans": [{"text": "제품"}]},
+                        {"bbox": (357.0, 240.0, 423.0, 252.0), "spans": [{"text": "한글로의 음역"}]},
+                    ],
+                },
+                {
+                    "type": 0,
+                    "_pageNumber": 545,
+                    "bbox": (0.0, 260.0, 500.0, 272.0),
+                    "lines": [
+                        {"bbox": (245.0, 260.0, 260.0, 272.0), "spans": [{"text": "맥주"}]},
+                        {"bbox": (315.0, 260.0, 420.0, 272.0), "spans": [{"text": "체스께 삐보 / 체스케 피보"}]},
+                    ],
+                },
+            ],
+            chapter_title="별첨",
+        )
+
+        self.assertIsNotNone(html)
+        self.assertIn("<th scope=\"col\">제품</th>", html)
+        self.assertIn("<th scope=\"col\">한글로의 음역</th>", html)
+        self.assertNotIn("<th scope=\"col\">보호되는 명칭</th></thead><tbody><tr><td></td>", html)
+        self.assertIn("<td>맥주</td><td>체스께 삐보 / 체스케 피보</td>", html)
+
+    def test_render_allowlisted_synthetic_chapter_html_returns_none_for_normal_chapter(self) -> None:
+        html = render_allowlisted_synthetic_chapter_html(
+            [make_raw_text_block([[(64.0, "일반 본문")]])],
+            chapter_title="제1장 목적",
+        )
+
+        self.assertIsNone(html)
+
+    def test_blocks_to_html_renders_certification_mark_comparison_tables_for_allowlisted_section(self) -> None:
+        blocks = [
+            make_raw_text_block([[(64.0, "도입 설명")]], page_number=428, top_start=90.0),
+            make_raw_text_block([[(103.0, "【상표와 증명표장의 비교】")]], page_number=428, top_start=106.0),
+            make_raw_text_block([[(295.0, "【단체표장과 증명표장의 비교】")]], page_number=428, top_start=107.0),
+        ]
+
+        html = blocks_to_html(
+            blocks,
+            part_title="제7부 상표 이외의 권리에 대한 심사",
+            chapter_title="제3장 증명표장",
+            section_title="1. 증명표장의 의의",
+        )
+
+        self.assertIn("도입 설명", html)
+        self.assertEqual(html.count("<table>"), 2)
+        self.assertIn("<th scope=\"col\">상표</th>", html)
+        self.assertIn("<th scope=\"col\">단체표장</th>", html)
+        self.assertIn("(한국전기공업협동조합)", html)
+        self.assertNotIn("<p>【상표와 증명표장의 비교】</p>", html)
+
+    def test_blocks_to_html_does_not_render_certification_mark_comparison_tables_outside_allowlisted_section(self) -> None:
+        blocks = [
+            make_raw_text_block([[(103.0, "【상표와 증명표장의 비교】")]], page_number=428, top_start=106.0),
+            make_raw_text_block([[(295.0, "【단체표장과 증명표장의 비교】")]], page_number=428, top_start=107.0),
+        ]
+
+        html = blocks_to_html(blocks, section_title="2. 증명표장의 출원인 적격")
+
+        self.assertIn("<p>【상표와 증명표장의 비교】</p>", html)
+        self.assertNotIn("<th scope=\"col\">상표</th>", html)
+
+    def test_blocks_to_html_renders_gi_fta_effective_date_table_for_allowlisted_section(self) -> None:
+        blocks = [
+            make_raw_text_block([[(64.0, "4.1 본호는 발효일 이후 출원 상표에 적용한다.")]], page_number=335, top_start=536.0),
+            make_raw_text_block([[(160.0, "《지리적 표시 보호목록 교환 FTA 및 발효일》")]], page_number=336, top_start=106.0),
+        ]
+
+        html = blocks_to_html(
+            blocks,
+            part_title="제5부 상표등록을 받을 수 없는 상표",
+            chapter_title="제19장 자유무역협정에 따라 보호되는 지리적 표시와 동일·유사한 상표",
+            section_title="4. 적용 및 판단시점",
+        )
+
+        self.assertIn("4.1 본호는 발효일 이후 출원 상표에 적용한다.", html)
+        self.assertIn("<th scope=\"col\">FTA 명칭</th>", html)
+        self.assertIn("<td>한-EU</td>", html)
+        self.assertIn("<td>부속서 10-가, 10-나</td>", html)
+        self.assertIn("잠정발효일인 2011.7.1.부터 보호", html)
+        self.assertIn("4.2 본호의 타인 해당 여부는 상표등록여부결정을 할 때를 기준으로 판단한다.", html)
+
+    def test_blocks_to_html_does_not_render_gi_fta_effective_date_table_outside_allowlisted_section(self) -> None:
+        blocks = [
+            make_raw_text_block([[(160.0, "《지리적 표시 보호목록 교환 FTA 및 발효일》")]], page_number=336, top_start=106.0),
+        ]
+
+        html = blocks_to_html(blocks, section_title="3. 다른 조문과의 관계")
+
+        self.assertIn("<p>《지리적 표시 보호목록 교환 FTA 및 발효일》</p>", html)
+        self.assertNotIn("<th scope=\"col\">FTA 명칭</th>", html)
+
+    def test_blocks_to_html_renders_priority_review_examples_table_for_allowlisted_section(self) -> None:
+        blocks = [
+            make_raw_text_block([[(64.0, "앞 문단")]], page_number=379, top_start=130.0),
+            make_raw_text_block([[(182.0, "《포괄명칭 사용입증 인정가능 예시》")]], page_number=379, top_start=273.0),
+            make_raw_text_block([[(98.0, "➊"), (120.0, "출원상품"), (170.0, "계산기(9류/G3601, G390803)")]], page_number=379, top_start=309.0),
+            make_raw_text_block([[(98.0, "사용입증"), (170.0, "전자계산기(G390803)")]], page_number=379, top_start=325.0),
+            make_raw_text_block([[(99.0, "➋"), (120.0, "출원상품"), (190.0, "주방용기(21류/ G1801,G1802,G1803,G1804,G2507),")]], page_number=379, top_start=346.0),
+            make_raw_text_block([[(99.0, "사용입증"), (170.0, "젓가락(G1803)")]], page_number=379, top_start=362.0),
+            make_raw_text_block([[(64.0, "뒤 문단")]], page_number=379, top_start=406.0),
+        ]
+
+        html = blocks_to_html(
+            blocks,
+            part_title="제6부 심사일반",
+            chapter_title="제2장 우선심사",
+            section_title="3. 우선심사 여부의 결정",
+        )
+
+        self.assertIn("앞 문단", html)
+        self.assertIn("<th scope=\"col\">예시</th>", html)
+        self.assertIn("<td>➊</td>", html)
+        self.assertIn("계산기(9류/G3601, G390803)", html)
+        self.assertIn("젓가락(G1803)", html)
+        self.assertIn("뒤 문단", html)
+
+    def test_blocks_to_html_does_not_render_priority_review_examples_table_outside_allowlisted_section(self) -> None:
+        blocks = [
+            make_raw_text_block([[(182.0, "《포괄명칭 사용입증 인정가능 예시》")]], page_number=379, top_start=273.0),
+        ]
+
+        html = blocks_to_html(blocks, section_title="2. 우선심사신청에 대한 심사")
+
+        self.assertIn("<p>《포괄명칭 사용입증 인정가능 예시》</p>", html)
+        self.assertNotIn("<th scope=\"col\">예시</th>", html)
+
+    def test_blocks_to_html_renders_ex_officio_correction_examples_table_for_allowlisted_section(self) -> None:
+        blocks = [
+            make_raw_text_block([[(64.0, "앞 문단")]], page_number=507, top_start=338.0),
+            make_raw_text_block([[(192.0, "《직권보정이 가능한 경우 예시》")]], page_number=507, top_start=488.0),
+            make_raw_text_block([[(120.0, "직권보정 전 지정상품"), (260.0, "직권보정 후 지정상품")]], page_number=507, top_start=517.0),
+            make_raw_text_block([[(122.0, "computers;;scanners"), (280.0, "computers; scanners")]], page_number=507, top_start=539.0),
+            make_raw_text_block([[(74.0, "services of trust-centres namely issuing and administration of digital keys and digital signatures")]], page_number=507, top_start=556.0),
+            make_raw_text_block([[(74.0, "services of trust-centres, namely issuing and administration of digital keys and digital signatures"), (278.0, "[상품류] 제25류")]], page_number=507, top_start=572.0),
+            make_raw_text_block([[(64.0, "(참고) 상표법 제193조 ...")]], page_number=507, top_start=650.0),
+        ]
+
+        html = blocks_to_html(
+            blocks,
+            part_title="제9부 국제상표 특례",
+            chapter_title="제2장 보정의 특례",
+            section_title="2. 심사관의 직권에 의한 보정",
+        )
+
+        self.assertIn("앞 문단", html)
+        self.assertIn("<th scope=\"col\">직권보정 전 지정상품</th>", html)
+        self.assertIn("computers;;scanners", html)
+        self.assertIn("computers; scanners", html)
+        self.assertIn("services of trust-centres namely issuing", html)
+        self.assertIn("[상품류] 제25류", html)
+        self.assertIn("(참고) 상표법 제193조", html)
+
+    def test_blocks_to_html_does_not_render_ex_officio_correction_examples_table_outside_allowlisted_section(self) -> None:
+        blocks = [
+            make_raw_text_block([[(192.0, "《직권보정이 가능한 경우 예시》")]], page_number=507, top_start=488.0),
+        ]
+
+        html = blocks_to_html(blocks, section_title="1. 보정을 할 수 없는 경우")
+
+        self.assertIn("<p>《직권보정이 가능한 경우 예시》</p>", html)
+        self.assertNotIn("<th scope=\"col\">직권보정 전 지정상품</th>", html)
+
+    def test_blocks_to_html_renders_notice_example_table_for_allowlisted_section(self) -> None:
+        blocks = [
+            make_raw_text_block([[(64.0, "앞 문단")]], page_number=29, top_start=394.0),
+            make_raw_text_block([[(208.0, "《예시 : 의견제출통지서》")]], page_number=29, top_start=466.0),
+            make_raw_text_block([[(173.0, "[ 거절이유 ] 상표법 제34조 제1항 제12호")]], page_number=29, top_start=497.0),
+            make_raw_text_block([[(73.0, "이 출원상표는 지정상품에 사용할 경우 상품의 품질을 오인하게 하거나 수요자를 기만할 염려가 있으므로 등록을 받을 수 없습니다.")]], page_number=29, top_start=521.0),
+            make_raw_text_block([[(73.0, "○ 이 출원상표는 개인이 법인(단체)명칭인 ‘oo협회’ 의 명칭을 출원하여 상품을 제공하는 자가 개인이 아닌 법인(단체)인 것으로 품질을 오인·혼동케 할 우려가 있는 표장입니다.")]], page_number=29, top_start=564.0),
+            make_raw_text_block([[(73.0, "- 지정상품 : 전부")]], page_number=29, top_start=601.0),
+            make_raw_text_block([[(64.0, "1.6 외국인의 권리능력")]], page_number=30, top_start=100.0),
+        ]
+
+        html = blocks_to_html(
+            blocks,
+            part_title="제1부 총 칙",
+            chapter_title="제2장 권리능력 및 행위능력",
+            section_title="1. 권리능력",
+        )
+
+        self.assertIn("앞 문단", html)
+        self.assertIn("거절이유", html)
+        self.assertIn("상표법 제34조 제1항 제12호", html)
+        self.assertIn("등록 가능 단서", html)
+        self.assertIn("1.6 외국인의 권리능력", html)
+        self.assertNotIn("<p>《예시 : 의견제출통지서》</p>", html)
+
+    def test_blocks_to_html_does_not_render_notice_example_table_outside_allowlisted_section(self) -> None:
+        blocks = [
+            make_raw_text_block([[(208.0, "《예시 : 의견제출통지서》")]], page_number=29, top_start=466.0),
+        ]
+
+        html = blocks_to_html(blocks, section_title="2. 행위능력")
+
+        self.assertIn("<p>《예시 : 의견제출통지서》</p>", html)
+        self.assertNotIn("등록 가능 단서", html)
+
+    def test_blocks_to_html_renders_procedural_cure_scope_table_for_allowlisted_section(self) -> None:
+        blocks = [
+            make_raw_text_block([[(64.0, "앞 문단")]], page_number=66, top_start=424.0),
+            make_raw_text_block([[(214.0, "《정당한 사유의 범위》")]], page_number=66, top_start=529.0),
+            make_raw_text_block([[(78.0, "「정당한 사유」란 일반인이 상당한 주의의무를 다하였는지를 기준으로 판단한다.")]], page_number=66, top_start=551.0),
+        ]
+
+        html = blocks_to_html(
+            blocks,
+            part_title="제1부 총 칙",
+            chapter_title="제7장 절차의 보완 및 보정",
+            section_title="2. 절차의 보정",
+        )
+
+        self.assertIn("앞 문단", html)
+        self.assertIn("판단기준", html)
+        self.assertIn("포함되는 경우", html)
+        self.assertIn("공시송달 사실을 몰랐다는 이유", html)
+        self.assertNotIn("<p>《정당한 사유의 범위》</p>", html)
+
+    def test_blocks_to_html_does_not_render_procedural_cure_scope_table_outside_allowlisted_section(self) -> None:
+        blocks = [
+            make_raw_text_block([[(214.0, "《정당한 사유의 범위》")]], page_number=66, top_start=529.0),
+        ]
+
+        html = blocks_to_html(blocks, section_title="2. 보정 승인·각하 판단")
+
+        self.assertIn("<p>《정당한 사유의 범위》</p>", html)
+        self.assertNotIn("포함되는 경우", html)
+
     def test_blocks_to_html_reconstructs_allowlisted_one_mark_one_application_table(self) -> None:
         blocks = make_text_blocks(ONE_MARK_ONE_APPLICATION_TABLE_BLOCK_TEXTS, page_number=101, page_code="20502")
 
@@ -1390,6 +1806,24 @@ class ContentGuardrailsTest(unittest.TestCase):
         self.assertLess(html.index('1.2 1상표 1출원 위반유형에 따른 심사처리방법'), html.index('reader-synthetic-figure'))
         self.assertLess(html.index('reader-synthetic-figure'), html.index('1.3 1상표 1출원 위반 여부의 판단시점'))
         self.assertEqual(blocks_to_text(blocks), "\n\n".join(ONE_MARK_ONE_APPLICATION_TABLE_BLOCK_TEXTS))
+
+    def test_blocks_to_html_reconstructs_allowlisted_common_surname_examples_table(self) -> None:
+        blocks = make_text_blocks(
+            [
+                "《흔한 성에 해당하는 경우/해당하지 않는 경우 예시》",
+                "ㅇ 해당하는 경우 : 김&박, 이&최   ㅇ 해당하지 않는 경우 : 김&가, 이&설",
+            ],
+            page_number=190,
+            page_code="40502",
+        )
+
+        html = blocks_to_html(blocks, section_title="1. 적용요건")
+
+        self.assertEqual(html.count("reader-synthetic-figure"), 1)
+        self.assertIn("<th scope=\"col\">해당하는 경우</th>", html)
+        self.assertIn("<th scope=\"col\">해당하지 않는 경우</th>", html)
+        self.assertIn("<td>김&amp;박, 이&amp;최</td>", html)
+        self.assertIn("<td>김&amp;가, 이&amp;설</td>", html)
 
     def test_blocks_to_html_reconstructs_allowlisted_filing_requirement_tables(self) -> None:
         cases = [
@@ -3344,6 +3778,96 @@ class ContentGuardrailsTest(unittest.TestCase):
                 },
             ],
         )
+
+    def test_collect_uncovered_non_toc_text_pages_ignores_explicitly_excluded_synthetic_boundary_pages(self) -> None:
+        inventory_page_map = build_inventory_page_map(
+            {
+                "pages": [
+                    {"pageNumber": 539, "pageCode": None, "charCount": 4, "hasText": True, "topLines": ["부 칙"]},
+                    {"pageNumber": 543, "pageCode": None, "charCount": 4, "hasText": True, "topLines": ["별 첨"]},
+                    {
+                        "pageNumber": 545,
+                        "pageCode": None,
+                        "charCount": 577,
+                        "hasText": True,
+                        "topLines": ["별 첨", "별첨 1 한-EU FTA에 따라 보호되는 지리적 표시"],
+                    },
+                ]
+            }
+        )
+
+        self.assertEqual(
+            collect_uncovered_non_toc_text_pages(
+                inventory_page_map,
+                [],
+                {},
+                [],
+            ),
+            [
+                {
+                    "pageNumber": 545,
+                    "pageCode": None,
+                    "topLines": ["별 첨", "별첨 1 한-EU FTA에 따라 보호되는 지리적 표시"],
+                }
+            ],
+        )
+
+    def test_assign_ranges_respects_fixed_page_end_for_synthetic_entries(self) -> None:
+        entries = [
+            {"id": "전문-표지-overview", "pageStart": 1, "pageEnd": None, "fixedPageEnd": 1},
+            {"id": "전문-제개정연혁-overview", "pageStart": 3, "pageEnd": None, "fixedPageEnd": 3},
+            {"id": "전문-범례-overview", "pageStart": 5, "pageEnd": None, "fixedPageEnd": 5},
+            {"id": "chapter-1-overview", "pageStart": 25, "pageEnd": None},
+        ]
+
+        assign_ranges(entries, 575)
+
+        self.assertEqual(entries[0]["pageEnd"], 1)
+        self.assertEqual(entries[1]["pageEnd"], 3)
+        self.assertEqual(entries[2]["pageEnd"], 5)
+        self.assertEqual(entries[3]["pageEnd"], 575)
+
+    def test_generated_synthetic_front_matter_chapters_have_text_and_fixed_ranges(self) -> None:
+        document_data = common.load_generated_json("document-data.json")
+        search_index = common.load_generated_json("search-index.json")
+        chapter_by_id = {chapter["id"]: chapter for chapter in document_data["chapters"]}
+        search_entry_by_id = {entry["id"]: entry for entry in search_index}
+
+        expected_ranges = {
+            "전문-표지": (1, 1),
+            "전문-제개정연혁": (3, 3),
+            "전문-범례": (5, 5),
+        }
+
+        for chapter_id, expected_range in expected_ranges.items():
+            chapter = chapter_by_id[chapter_id]
+            overview_entry = search_entry_by_id[f"{chapter_id}-overview"]
+
+            self.assertIsNone(chapter["pageCode"])
+            self.assertEqual((chapter["pageStart"], chapter["pageEnd"]), expected_range)
+            self.assertEqual((overview_entry["pageStart"], overview_entry["pageEnd"]), expected_range)
+            self.assertTrue(overview_entry["text"].strip())
+
+    def test_generated_synthetic_appendix_chapters_have_text_and_fixed_ranges(self) -> None:
+        document_data = common.load_generated_json("document-data.json")
+        search_index = common.load_generated_json("search-index.json")
+        chapter_by_id = {chapter["id"]: chapter for chapter in document_data["chapters"]}
+        search_entry_by_id = {entry["id"]: entry for entry in search_index}
+
+        expected_ranges = {
+            "부록-부칙": (541, 542),
+            "부록-별첨": (545, 574),
+            "부록-판권": (575, 575),
+        }
+
+        for chapter_id, expected_range in expected_ranges.items():
+            chapter = chapter_by_id[chapter_id]
+            overview_entry = search_entry_by_id[f"{chapter_id}-overview"]
+
+            self.assertIsNone(chapter["pageCode"])
+            self.assertEqual((chapter["pageStart"], chapter["pageEnd"]), expected_range)
+            self.assertEqual((overview_entry["pageStart"], overview_entry["pageEnd"]), expected_range)
+            self.assertTrue(overview_entry["text"].strip())
 
     def test_is_appendix_boundary_page_requires_null_page_code_and_marker(self) -> None:
         self.assertTrue(is_appendix_boundary_page({"pageCode": None, "topLines": ["부 칙"]}))

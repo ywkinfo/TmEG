@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, defaultdict
 import json
 import re
 import sys
@@ -279,6 +279,19 @@ SYNTHETIC_PROCEDURE_SPECS: dict[str, list[tuple[str, str]]] = {
     ],
 }
 SYNTHETIC_COMPARISON_TABLE_SPECS: dict[str, list[dict[str, Any]]] = {
+    clean_title("1. 적용요건"): [
+        {
+            "headers": ["해당하는 경우", "해당하지 않는 경우"],
+            "required_blocks": [
+                "《흔한 성에 해당하는 경우/해당하지 않는 경우 예시》",
+                "ㅇ 해당하는 경우 : 김&박, 이&최   ㅇ 해당하지 않는 경우 : 김&가, 이&설",
+            ],
+            "rows": [
+                ("김&박, 이&최", "김&가, 이&설"),
+            ],
+            "consume": 2,
+        }
+    ],
     clean_title("2. 사용사실 및 사용의사의 확인"): [
         {
             "headers": ["견련관계가 없는 경우(예시)", "견련관계가 있는 경우(예시)"],
@@ -1113,6 +1126,12 @@ SYNTHETIC_MULTI_COLUMN_TABLE_SPECS: dict[str, list[dict[str, Any]]] = {
             "consume": 26,
         },
     ],
+}
+
+ALLOWLISTED_SYNTHETIC_CHAPTER_TITLES = {
+    clean_title("제·개정 연혁"),
+    clean_title("범례"),
+    clean_title("별첨"),
 }
 DATEISH_LINE_RE = re.compile(r"^(?:\d{1,2}월\s*\d{1,2}일|\d{1,2}\.\d{1,2}(?:\([^)]+\))?)$")
 SYNTHETIC_TIMELINE_KEYWORDS = {
@@ -2032,6 +2051,20 @@ def _render_synthetic_comparison_table(headers: list[str], rows: list[tuple[str,
     )
 
 
+def _render_synthetic_key_value_table(rows: list[tuple[str, str]]) -> str:
+    body_html = "".join(
+        f"<tr><th scope=\"row\">{_escape_table_text(label)}</th><td>{_escape_table_text(value)}</td></tr>"
+        for label, value in rows
+    )
+    return "\n".join(
+        [
+            '<figure class="reader-image reader-synthetic-figure">',
+            f"<table><tbody>{body_html}</tbody></table>",
+            "</figure>",
+        ]
+    )
+
+
 def _render_synthetic_multi_column_table(headers: list[str], rows: list[list[Any]]) -> str:
     head_html = "".join(f'<th scope="col">{_escape_table_text(header)}</th>' for header in headers)
     body_html = "".join(
@@ -2074,6 +2107,46 @@ def _render_synthetic_table_cell(cell: Any) -> str:
         "</a>"
         f"{label_html}"
         "</div>"
+    )
+
+
+def _looks_like_reader_caption(text: str) -> bool:
+    normalized = normalize_line(text)
+    return bool(re.fullmatch(r"《.+》", normalized))
+
+
+def _render_image_figure(block: dict[str, Any], *, caption_text: str | None = None) -> str | None:
+    relative_path = block.get("_relativePath")
+    if not relative_path:
+        return None
+
+    page_number = block.get("_pageNumber")
+    page_code = block.get("_pageCode")
+    normalized_caption = normalize_line(caption_text or "")
+    alt_text = normalized_caption or (f"상표 이미지 (p.{page_number})" if page_number else "상표 이미지")
+    if normalized_caption:
+        caption_html = f"<figcaption>{escape(normalized_caption)}</figcaption>"
+    else:
+        caption_parts = [f"p.{page_number}"] if page_number else []
+        if page_code:
+            caption_parts.append(str(page_code))
+        caption_html = (
+            f"<figcaption>{escape(' · '.join(caption_parts))}</figcaption>" if caption_parts else ""
+        )
+
+    return (
+        "\n".join(
+            [
+                '<figure class="reader-image">',
+                (
+                    f'<a href="{escape(relative_path)}" target="_blank" rel="noreferrer">'
+                    f'<img src="{escape(relative_path)}" loading="lazy" alt="{escape(alt_text)}" />'
+                    "</a>"
+                ),
+                caption_html,
+                "</figure>",
+            ]
+        ).replace("\n\n", "\n")
     )
 
 
@@ -2153,7 +2226,649 @@ def _render_allowlisted_multi_column_table(
     return None, start_index + 1
 
 
-def blocks_to_html(
+def _raw_block_sort_key(block: dict[str, Any]) -> tuple[int, float, float]:
+    bbox = block.get("bbox")
+    top = float(bbox[1]) if isinstance(bbox, (tuple, list)) and len(bbox) == 4 else 10**9
+    left = float(bbox[0]) if isinstance(bbox, (tuple, list)) and len(bbox) == 4 else 10**9
+    return (int(block.get("_pageNumber") or 0), top, left)
+
+
+def _sorted_text_blocks(blocks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        block
+        for block in sorted(blocks, key=_raw_block_sort_key)
+        if block.get("type") == 0 and text_block_to_text(block).strip()
+    ]
+
+
+def _render_text_heading(level: int, text: str) -> str:
+    return f"<h{level}>{escape(text)}</h{level}>"
+
+
+def _group_block_lines_by_y(block: dict[str, Any]) -> list[list[tuple[float, str]]]:
+    rows: dict[float, list[tuple[float, str]]] = defaultdict(list)
+    for line in block.get("lines", []):
+        text = "".join(str(span.get("text") or "") for span in line.get("spans", []))
+        text = normalize_line(text)
+        if not text:
+            continue
+        bbox = line.get("bbox")
+        top = round(float(bbox[1]), 1) if isinstance(bbox, (tuple, list)) and len(bbox) == 4 else 0.0
+        left = float(bbox[0]) if isinstance(bbox, (tuple, list)) and len(bbox) == 4 else 0.0
+        rows[top].append((left, text))
+    return [sorted(rows[top], key=lambda item: item[0]) for top in sorted(rows)]
+
+
+def _render_revision_history_table(blocks: list[dict[str, Any]]) -> str | None:
+    data_block = next(
+        (
+            block
+            for block in _sorted_text_blocks(blocks)
+            if len(block.get("lines", [])) >= 10 and "제" in text_block_to_text(block)
+        ),
+        None,
+    )
+    if data_block is None:
+        return None
+
+    rows: list[list[str]] = []
+    for grouped_line in _group_block_lines_by_y(data_block):
+        tokens = [text for _, text in grouped_line]
+        if len(tokens) < 5:
+            continue
+        kind = clean_title(tokens[0])
+        date = normalize_line(" ".join(tokens[1:4]))
+        notice = normalize_line(" ".join(tokens[4:])).replace("제 ", "제")
+        rows.append([kind, date, notice])
+
+    if not rows:
+        return None
+    return _render_synthetic_multi_column_table(["구분", "일자", "예규"], rows)
+
+
+def _render_legend_table(blocks: list[dict[str, Any]]) -> str | None:
+    intro: list[str] = []
+    rows: list[tuple[str, str]] = []
+    outro: list[str] = []
+    table_started = False
+
+    for block in _sorted_text_blocks(blocks):
+        text = normalize_line(text_block_to_text(block))
+        if not text:
+            continue
+        normalized = clean_title(text)
+        if normalized in {"1. 범례", "범례"}:
+            continue
+        if "→" in text and not outro:
+            left, right = text.split("→", 1)
+            rows.append((normalize_line(left), normalize_line(right)))
+            table_started = True
+            continue
+        if not table_started:
+            intro.append(text)
+            continue
+        outro.append(text)
+
+    if not rows:
+        return None
+
+    html_parts: list[str] = []
+    for paragraph in intro:
+        html_parts.append(text_to_html(paragraph))
+    html_parts.append(_render_synthetic_comparison_table(["약어", "의미"], rows))
+    for paragraph in outro:
+        html_parts.append(text_to_html(paragraph))
+    return "\n".join(html_parts)
+
+
+def _parse_appendix_table_header(block: dict[str, Any]) -> tuple[list[str], list[float]] | None:
+    rows = _group_block_lines_by_y(block)
+    if len(rows) != 1:
+        return None
+    header_cells = rows[0]
+    headers = [clean_title(text) for _, text in header_cells]
+    if not headers or headers[0] != "보호되는 명칭":
+        return None
+    if len(headers) not in {2, 3}:
+        return None
+    if len(headers) == 3 and headers[1] != "제품":
+        return None
+    return headers, [left for left, _ in header_cells]
+
+
+def _collapse_appendix_line_clusters(block: dict[str, Any]) -> list[tuple[float, str]]:
+    clusters: list[dict[str, Any]] = []
+    for line in block.get("lines", []):
+        text = "".join(str(span.get("text") or "") for span in line.get("spans", []))
+        text = normalize_line(text)
+        if not text:
+            continue
+        bbox = line.get("bbox")
+        left = float(bbox[0]) if isinstance(bbox, (tuple, list)) and len(bbox) == 4 else 0.0
+        matched_cluster: dict[str, Any] | None = None
+        for cluster in clusters:
+            if abs(cluster["left"] - left) <= 24:
+                matched_cluster = cluster
+                break
+        if matched_cluster is None:
+            matched_cluster = {"left": left, "texts": []}
+            clusters.append(matched_cluster)
+        matched_cluster["texts"].append(text)
+
+    collapsed = [(cluster["left"], "\n".join(cluster["texts"])) for cluster in clusters]
+    return sorted(collapsed, key=lambda item: item[0])
+
+
+def _parse_appendix_table_row(
+    block: dict[str, Any],
+    *,
+    headers: list[str],
+    header_lefts: list[float],
+) -> list[str]:
+    column_count = len(headers)
+    groups = _collapse_appendix_line_clusters(block)
+    if not groups:
+        return []
+
+    texts = [text for _, text in groups]
+    lefts = [left for left, _ in groups]
+    if len(groups) == column_count:
+        return texts
+
+    row = [""] * column_count
+    if len(groups) < column_count:
+        first_midpoint = (header_lefts[0] + header_lefts[1]) / 2 if column_count > 1 else header_lefts[0]
+        start_index = column_count - len(groups) if lefts[0] >= first_midpoint else 0
+        for index, text in enumerate(texts):
+            row[start_index + index] = text
+        return row
+
+    for left, text in groups:
+        nearest_index = min(
+            range(column_count),
+            key=lambda index: abs(left - header_lefts[index]),
+        )
+        row[nearest_index] = (
+            f"{row[nearest_index]}\n{text}".strip()
+            if row[nearest_index]
+            else text
+        )
+    return row
+
+
+def _looks_like_appendix_heading(text: str) -> bool:
+    normalized = clean_title(text)
+    if not normalized:
+        return False
+    if normalized.startswith("별첨 "):
+        return True
+    if normalized.startswith("부속서"):
+        return True
+    if re.match(r"^제\s*\d+\s*부", normalized):
+        return True
+    if re.match(r"^제\s*\d+\s*절", normalized):
+        return True
+    if normalized in {"농산물 및 식품에 대한 지리적 표시", "포도주, 방향포도주 및 증류주에 대한 지리적 표시", "포도주, 방향포도주 및 증류주에 관한 지리적 표시", "증류주"}:
+        return True
+    return "\n" not in text and len(normalized) <= 32 and not normalized.startswith(("(", "<", "1)", "2)", "3)", "4)"))
+
+
+def _render_appendix_heading(text: str) -> str:
+    normalized = clean_title(text)
+    if normalized.startswith("별첨 "):
+        return _render_text_heading(3, text)
+    if normalized.startswith("부속서"):
+        return _render_text_heading(4, text)
+    if re.match(r"^제\s*\d+\s*부", normalized):
+        return _render_text_heading(4, text)
+    if re.match(r"^제\s*\d+\s*절", normalized):
+        return _render_text_heading(5, text)
+    if normalized in {"농산물 및 식품에 대한 지리적 표시", "포도주, 방향포도주 및 증류주에 대한 지리적 표시", "포도주, 방향포도주 및 증류주에 관한 지리적 표시", "증류주"}:
+        return _render_text_heading(5, text)
+    return _render_text_heading(5, text)
+
+
+def _render_appendix_tables(blocks: list[dict[str, Any]]) -> str | None:
+    html_parts: list[str] = []
+    current_headers: list[str] | None = None
+    current_header_lefts: list[float] | None = None
+    current_rows: list[list[str]] = []
+
+    def flush_table() -> None:
+        nonlocal current_headers, current_header_lefts, current_rows
+        if current_headers and current_rows:
+            headers = current_headers
+            rows = current_rows
+            if (
+                len(headers) == 3
+                and rows
+                and all(not row[0] and row[1] and row[2] for row in rows)
+            ):
+                headers = headers[1:]
+                rows = [row[1:] for row in rows]
+            html_parts.append(_render_synthetic_multi_column_table(headers, rows))
+        current_headers = None
+        current_header_lefts = None
+        current_rows = []
+
+    for block in _sorted_text_blocks(blocks):
+        text = text_block_to_text(block).strip()
+        if not text:
+            continue
+        normalized = clean_title(text)
+        if normalized == "별첨":
+            continue
+
+        parsed_header = _parse_appendix_table_header(block)
+        if parsed_header is not None:
+            flush_table()
+            current_headers, current_header_lefts = parsed_header
+            continue
+
+        if current_headers is not None and current_header_lefts is not None:
+            if _looks_like_appendix_heading(text) or normalized.startswith(("(", "<", "※", "1)", "2)", "3)", "4)", "5)", "6)", "7)", "8)", "9)", "10)")):
+                flush_table()
+            else:
+                row = _parse_appendix_table_row(
+                    block,
+                    headers=current_headers,
+                    header_lefts=current_header_lefts,
+                )
+                if row:
+                    current_rows.append(row)
+                    continue
+
+        if _looks_like_appendix_heading(text):
+            html_parts.append(_render_appendix_heading(text))
+        else:
+            html_parts.append(text_to_html(text))
+
+    flush_table()
+    if not html_parts:
+        return None
+    return "\n".join(html_parts)
+
+
+def render_allowlisted_synthetic_chapter_html(
+    blocks: list[dict[str, Any]],
+    *,
+    chapter_title: str,
+) -> str | None:
+    normalized_title = clean_title(chapter_title)
+    if normalized_title not in ALLOWLISTED_SYNTHETIC_CHAPTER_TITLES:
+        return None
+    if normalized_title == clean_title("제·개정 연혁"):
+        return _render_revision_history_table(blocks)
+    if normalized_title == clean_title("범례"):
+        return _render_legend_table(blocks)
+    if normalized_title == clean_title("별첨"):
+        return _render_appendix_tables(blocks)
+    return None
+
+
+def _find_text_block_index_by_exact_text(blocks: list[dict[str, Any]], target_text: str) -> int | None:
+    normalized_target = normalize_line(target_text)
+    for index, block in enumerate(blocks):
+        if block.get("type") != 0:
+            continue
+        if normalize_line(text_block_to_text(block)) == normalized_target:
+            return index
+    return None
+
+
+def _render_certification_mark_comparison_section(
+    blocks: list[dict[str, Any]],
+    *,
+    part_title: str,
+    chapter_title: str,
+) -> str | None:
+    sorted_blocks = sorted(blocks, key=_raw_block_sort_key)
+    first_caption = "【상표와 증명표장의 비교】"
+    second_caption = "【단체표장과 증명표장의 비교】"
+    first_index = _find_text_block_index_by_exact_text(sorted_blocks, first_caption)
+    second_index = _find_text_block_index_by_exact_text(sorted_blocks, second_caption)
+    if first_index is None or second_index is None or second_index <= first_index:
+        return None
+
+    prefix_html = _render_blocks_to_html_standard(
+        sorted_blocks[:first_index],
+        part_title=part_title,
+        chapter_title=chapter_title,
+        section_title="",
+    )
+
+    first_table = _render_synthetic_multi_column_table(
+        ["구분", "상표", "증명표장"],
+        [
+            ["기능", "상품의 출처표시", "품질 및 특성 등을\n증명, 보증"],
+            ["사용주체", "소유자 본인", "정관에서 정한 기준을\n충족한 타인"],
+            ["관리", "관리․통제 필요성이\n낮음", "관리․통제의 필요성이\n높음(일반 공중의 이익 보호)"],
+            ["사용허락", "상표권자의 재량적\n권한", "정관에서 정한 기준을\n사용자가 충족하는 경우 차별 없이\n사용을 허락하여야 함"],
+        ],
+    )
+    second_table = _render_synthetic_multi_column_table(
+        ["구분", "단체표장", "증명표장"],
+        [
+            ["기능", "사용자가 단체원이라는\n출처표시", "품질 및 특성 등을\n증명·보증"],
+            ["사용주체", "단체원만 사용 가능", "정관에서 정한 기준을\n충족한 타인"],
+            ["관리", "표장권자인 단체도\n사용 가능", "증명표장권자는 사용\n불가"],
+            ["예시", "(한국전기공업협동조합)", "(Wool Mark,\n국가통합인증마크)"],
+        ],
+    )
+
+    html_parts = []
+    if prefix_html != "<p></p>":
+        html_parts.append(prefix_html)
+    html_parts.extend(
+        [
+            _render_text_heading(4, first_caption),
+            first_table,
+            _render_text_heading(4, second_caption),
+            second_table,
+        ]
+    )
+    return "\n".join(html_parts)
+
+
+def _render_gi_fta_effective_date_section(
+    blocks: list[dict[str, Any]],
+    *,
+    part_title: str,
+    chapter_title: str,
+) -> str | None:
+    sorted_blocks = sorted(blocks, key=_raw_block_sort_key)
+    caption = "《지리적 표시 보호목록 교환 FTA 및 발효일》"
+    caption_index = _find_text_block_index_by_exact_text(sorted_blocks, caption)
+    if caption_index is None:
+        return None
+
+    prefix_html = _render_blocks_to_html_standard(
+        sorted_blocks[:caption_index],
+        part_title=part_title,
+        chapter_title=chapter_title,
+        section_title="",
+    )
+    table_html = _render_synthetic_multi_column_table(
+        ["FTA 명칭", "타결일", "발효일", "보호 목록", "심사기준 별첨목록"],
+        [
+            ["한-EU", "2009.7.13.", "2011.7.1.*", "부속서 10-가, 10-나", "별첨1"],
+            ["GI 목록추가", "", "2023.1.1.**", "", ""],
+            ["한-칠레", "2002.10.25.", "2004.4.1.", "부속서 16.4.3, 16.4.4", "별첨2"],
+            ["한-페루", "2010.8.30.", "2011.8.1.", "부속서 17가", "별첨3"],
+            ["한-터키", "2012.3.26.", "2013.5.1.", "부속서 2", "별첨4"],
+            ["한-캐나다", "2014.3.11.", "2015.1.1.", "제16.10조", "별첨5"],
+            ["한-영", "2019.6.10.", "2021.1.1", "부속서 10-나", "별첨6"],
+        ],
+    )
+    note_html = "\n".join(
+        [
+            text_to_html(
+                "* 한-EU FTA의 전체발효는 2015.12.13.이나 지리적 표시 보호는 잠정발효일인 2011.7.1.부터 보호"
+            ),
+            text_to_html(
+                "** 한-EU FTA의 지리적 표시 보호목록 중 추가된 Steirisches Kürbiskernöl(슈타이리쉐스 퀴르비스케른욀) 등은 2014.12.19.부터, Nürnberger Lebkuchen(뉘렌베르거 렙쿠헨)은 2021.7.26.부터, 명칭변경된 Prosciutto di San Daniele(프로슈토 디 산 다니엘레)등은 2017.7.13.부터 보호(변경 전 명칭은 2017.7.12. 보호종료)"
+            ),
+            text_to_html("4.2 본호의 타인 해당 여부는 상표등록여부결정을 할 때를 기준으로 판단한다."),
+        ]
+    )
+
+    html_parts = []
+    if prefix_html != "<p></p>":
+        html_parts.append(prefix_html)
+    html_parts.extend([_render_text_heading(4, caption), table_html, note_html])
+    return "\n".join(html_parts)
+
+
+def _render_priority_review_examples_section(
+    blocks: list[dict[str, Any]],
+    *,
+    part_title: str,
+    chapter_title: str,
+) -> str | None:
+    sorted_blocks = sorted(blocks, key=_raw_block_sort_key)
+    caption = "《포괄명칭 사용입증 인정가능 예시》"
+    caption_index = _find_text_block_index_by_exact_text(sorted_blocks, caption)
+    if caption_index is None:
+        return None
+
+    prefix_html = _render_blocks_to_html_standard(
+        sorted_blocks[:caption_index],
+        part_title=part_title,
+        chapter_title=chapter_title,
+        section_title="",
+    )
+    table_html = _render_synthetic_multi_column_table(
+        ["예시", "출원상품", "사용입증"],
+        [
+            ["➊", "계산기(9류/G3601, G390803)", "전자계산기(G390803)"],
+            ["➋", "주방용기(21류/G1801, G1802, G1803, G1804, G2507)", "젓가락(G1803)"],
+        ],
+    )
+    suffix_start = next(
+        (
+            index
+            for index in range(caption_index + 1, len(sorted_blocks))
+            if re.match(r"^\d+\.\d+\.\d+", normalize_line(text_block_to_text(sorted_blocks[index])))
+        ),
+        min(caption_index + 5, len(sorted_blocks)),
+    )
+    suffix_html = _render_blocks_to_html_standard(
+        sorted_blocks[suffix_start:],
+        part_title=part_title,
+        chapter_title=chapter_title,
+        section_title="",
+    )
+
+    html_parts = []
+    if prefix_html != "<p></p>":
+        html_parts.append(prefix_html)
+    html_parts.extend([_render_text_heading(4, caption), table_html])
+    if suffix_html != "<p></p>":
+        html_parts.append(suffix_html)
+    return "\n".join(html_parts)
+
+
+def _render_ex_officio_correction_examples_section(
+    blocks: list[dict[str, Any]],
+    *,
+    part_title: str,
+    chapter_title: str,
+) -> str | None:
+    sorted_blocks = sorted(blocks, key=_raw_block_sort_key)
+    caption = "《직권보정이 가능한 경우 예시》"
+    caption_index = _find_text_block_index_by_exact_text(sorted_blocks, caption)
+    if caption_index is None:
+        return None
+
+    prefix_html = _render_blocks_to_html_standard(
+        sorted_blocks[:caption_index],
+        part_title=part_title,
+        chapter_title=chapter_title,
+        section_title="",
+    )
+    table_html = _render_synthetic_multi_column_table(
+        ["예시", "직권보정 전 지정상품", "직권보정 후 지정상품"],
+        [
+            ["예시 1", "computers;;scanners", "computers; scanners"],
+            [
+                "예시 2",
+                "services of trust-centres namely issuing and administration of digital keys and digital signatures\n[상품류] 제09류\n[지정상품] Clothing, namely jacket, suit, belt(clothing) ....",
+                "services of trust-centres, namely issuing and administration of digital keys and digital signatures\n[상품류] 제25류\n[지정상품] Clothing, namely jacket, suit, belt(clothing) ....",
+            ],
+        ],
+    )
+    suffix_start = next(
+        (
+            index
+            for index in range(caption_index + 1, len(sorted_blocks))
+            if "(참고)" in normalize_line(text_block_to_text(sorted_blocks[index]))
+        ),
+        min(caption_index + 5, len(sorted_blocks)),
+    )
+    suffix_html = _render_blocks_to_html_standard(
+        sorted_blocks[suffix_start:],
+        part_title=part_title,
+        chapter_title=chapter_title,
+        section_title="",
+    )
+
+    html_parts = []
+    if prefix_html != "<p></p>":
+        html_parts.append(prefix_html)
+    html_parts.extend([_render_text_heading(4, caption), table_html])
+    if suffix_html != "<p></p>":
+        html_parts.append(suffix_html)
+    return "\n".join(html_parts)
+
+
+def _render_procedural_cure_scope_section(
+    blocks: list[dict[str, Any]],
+    *,
+    part_title: str,
+    chapter_title: str,
+) -> str | None:
+    sorted_blocks = sorted(blocks, key=_raw_block_sort_key)
+    caption = "《정당한 사유의 범위》"
+    caption_index = _find_text_block_index_by_exact_text(sorted_blocks, caption)
+    if caption_index is None:
+        return None
+
+    prefix_html = _render_blocks_to_html_standard(
+        sorted_blocks[:caption_index],
+        part_title=part_title,
+        chapter_title=chapter_title,
+        section_title="",
+    )
+    table_html = _render_synthetic_key_value_table(
+        [
+            ("판단기준", "일반인이 상당한 주의의무를 다하였는지를 기준으로 판단한다."),
+            ("포함되는 경우", "천재·지변 기타 불가피한 사유, 무효처분의 서류를 당사자가 아닌 자에게 송달한 경우"),
+            ("포함되지 않는 경우", "공시송달 사실을 몰랐다는 이유만으로 상당한 주의의무를 다하지 않은 경우"),
+        ]
+    )
+
+    html_parts = []
+    if prefix_html != "<p></p>":
+        html_parts.append(prefix_html)
+    html_parts.extend([_render_text_heading(4, caption), table_html])
+    return "\n".join(html_parts)
+
+
+def _render_notice_example_section(
+    blocks: list[dict[str, Any]],
+    *,
+    part_title: str,
+    chapter_title: str,
+) -> str | None:
+    sorted_blocks = sorted(blocks, key=_raw_block_sort_key)
+    caption = "《예시 : 의견제출통지서》"
+    caption_index = _find_text_block_index_by_exact_text(sorted_blocks, caption)
+    if caption_index is None:
+        return None
+
+    prefix_html = _render_blocks_to_html_standard(
+        sorted_blocks[:caption_index],
+        part_title=part_title,
+        chapter_title=chapter_title,
+        section_title="",
+    )
+    suffix_start = next(
+        (
+            index
+            for index in range(caption_index + 1, len(sorted_blocks))
+            if normalize_line(text_block_to_text(sorted_blocks[index])).startswith("1.6 ")
+        ),
+        len(sorted_blocks),
+    )
+    suffix_html = _render_blocks_to_html_standard(
+        sorted_blocks[suffix_start:],
+        part_title=part_title,
+        chapter_title=chapter_title,
+        section_title="",
+    )
+    table_html = _render_synthetic_key_value_table(
+        [
+            ("거절이유", "상표법 제34조 제1항 제12호"),
+            (
+                "통지문",
+                "이 출원상표는 지정상품에 사용할 경우 상품의 품질을 오인하게 하거나 수요자를 기만할 염려가 있으므로 등록을 받을 수 없습니다.",
+            ),
+            (
+                "핵심 판단",
+                "개인이 법인(단체)명칭인 ‘oo협회’의 명칭을 출원하여 상품을 제공하는 자가 개인이 아닌 법인(단체)인 것으로 품질을 오인·혼동케 할 우려가 있는 표장입니다.",
+            ),
+            ("지정상품", "전부"),
+            (
+                "등록 가능 단서",
+                "ㅇㅇ협회가 비법인단체로서 권리능력이 없고, 출원인이 등록받더라도 비법인단체와 출처의 오인·혼동 우려가 없다는 점이 인정되면 등록이 가능합니다.",
+            ),
+        ]
+    )
+
+    html_parts = []
+    if prefix_html != "<p></p>":
+        html_parts.append(prefix_html)
+    html_parts.extend([_render_text_heading(4, caption), table_html])
+    if suffix_html != "<p></p>":
+        html_parts.append(suffix_html)
+    return "\n".join(html_parts)
+
+
+def _render_allowlisted_raw_section_html(
+    blocks: list[dict[str, Any]],
+    *,
+    part_title: str,
+    chapter_title: str,
+    section_title: str,
+) -> str | None:
+    normalized_title = clean_title(section_title)
+    normalized_chapter_title = clean_title(chapter_title)
+    if normalized_title == clean_title("1. 증명표장의 의의"):
+        return _render_certification_mark_comparison_section(
+            blocks,
+            part_title=part_title,
+            chapter_title=chapter_title,
+        )
+    if normalized_title == clean_title("3. 우선심사 여부의 결정"):
+        return _render_priority_review_examples_section(
+            blocks,
+            part_title=part_title,
+            chapter_title=chapter_title,
+        )
+    if normalized_title == clean_title("2. 심사관의 직권에 의한 보정"):
+        return _render_ex_officio_correction_examples_section(
+            blocks,
+            part_title=part_title,
+            chapter_title=chapter_title,
+        )
+    if (
+        normalized_title == clean_title("2. 절차의 보정")
+        and normalized_chapter_title == clean_title("제7장 절차의 보완 및 보정")
+    ):
+        return _render_procedural_cure_scope_section(
+            blocks,
+            part_title=part_title,
+            chapter_title=chapter_title,
+        )
+    if (
+        normalized_title == clean_title("1. 권리능력")
+        and normalized_chapter_title == clean_title("제2장 권리능력 및 행위능력")
+    ):
+        return _render_notice_example_section(
+            blocks,
+            part_title=part_title,
+            chapter_title=chapter_title,
+        )
+    if normalized_title == clean_title("4. 적용 및 판단시점"):
+        return _render_gi_fta_effective_date_section(
+            blocks,
+            part_title=part_title,
+            chapter_title=chapter_title,
+        )
+    return None
+
+
+def _render_blocks_to_html_standard(
     blocks: list[dict[str, Any]],
     *,
     part_title: str = "",
@@ -2213,6 +2928,20 @@ def blocks_to_html(
         block_type = block.get("type")
         if block_type == 0:
             block_text = text_block_to_text(block)
+            if (
+                block_text
+                and _looks_like_reader_caption(block_text)
+                and index + 1 < len(normalized_blocks)
+                and normalized_blocks[index + 1].get("type") == 1
+            ):
+                figure_html = _render_image_figure(
+                    normalized_blocks[index + 1],
+                    caption_text=block_text,
+                )
+                if figure_html is not None:
+                    html_blocks.append(figure_html)
+                    index += 2
+                    continue
             if block_text:
                 html_blocks.append(text_to_html(block_text))
             index += 1
@@ -2222,39 +2951,37 @@ def blocks_to_html(
             index += 1
             continue
 
-        relative_path = block.get("_relativePath")
-        if not relative_path:
-            index += 1
-            continue
-
-        page_number = block.get("_pageNumber")
-        page_code = block.get("_pageCode")
-        alt_text = f"상표 이미지 (p.{page_number})" if page_number else "상표 이미지"
-        caption_parts = [f"p.{page_number}"] if page_number else []
-        if page_code:
-            caption_parts.append(str(page_code))
-        caption_html = (
-            f"<figcaption>{escape(' · '.join(caption_parts))}</figcaption>" if caption_parts else ""
-        )
-        html_blocks.append(
-            "\n".join(
-                [
-                    '<figure class="reader-image">',
-                    (
-                        f'<a href="{escape(relative_path)}" target="_blank" rel="noreferrer">'
-                        f'<img src="{escape(relative_path)}" loading="lazy" alt="{escape(alt_text)}" />'
-                        "</a>"
-                    ),
-                    caption_html,
-                    "</figure>",
-                ]
-            ).replace("\n\n", "\n")
-        )
+        figure_html = _render_image_figure(block)
+        if figure_html is not None:
+            html_blocks.append(figure_html)
         index += 1
 
     if not html_blocks:
         return "<p></p>"
     return "\n".join(html_blocks)
+
+
+def blocks_to_html(
+    blocks: list[dict[str, Any]],
+    *,
+    part_title: str = "",
+    chapter_title: str = "",
+    section_title: str = "",
+) -> str:
+    allowlisted_raw_html = _render_allowlisted_raw_section_html(
+        blocks,
+        part_title=part_title,
+        chapter_title=chapter_title,
+        section_title=section_title,
+    )
+    if allowlisted_raw_html is not None:
+        return allowlisted_raw_html
+    return _render_blocks_to_html_standard(
+        blocks,
+        part_title=part_title,
+        chapter_title=chapter_title,
+        section_title=section_title,
+    )
 
 
 def load_page_texts(reader: pymupdf.Document) -> dict[int, str]:
